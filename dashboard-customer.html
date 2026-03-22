@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Dashboard - SME Connect</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h2>SME Connect</h2>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="#" class="active" data-target="overview-section"><i class="fas fa-home"></i> Dashboard</a></li>
+      <li><a href="#" data-target="orders-section"><i class="fas fa-shopping-bag"></i> My Orders</a></li>
+      <li><a href="#" data-target="wishlist-section"><i class="fas fa-heart"></i> Wishlist</a></li>
+      <li><a href="#" data-target="settings-section"><i class="fas fa-user"></i> Profile Settings</a></li>
+      <li><a href="#" data-target="marketplace-section"><i class="fas fa-store"></i> Shop Products & Services</a></li>
+      <li><a href="#" data-target="messages-section"><i class="fas fa-envelope"></i> Messages <span class="msg-badge" style="display:none; background: #dc3545; color: white; padding: 2px 6px; border-radius: 50%; font-size: 10px; margin-left: 5px;">0</span></a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <button id="logoutBtn" class="btn-primary" style="width: 100%;">Logout</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="dashboard-header">
+      <div class="header-left">
+        <button id="mobile-menu-btn" class="mobile-menu-btn"><i class="fas fa-bars"></i></button>
+        <h1>Welcome back, Eli!</h1>
+      </div>
+      <div class="header-right">
+        <button class="btn-primary" onclick="toggleCart()"><i class="fas fa-shopping-cart"></i> <span class="cart-badge" style="display:none; background: #fff; color: var(--primary-color); padding: 2px 6px; border-radius: 50%; font-size: 12px; font-weight: bold;">0</span></button>
+        <button id="theme-toggle" class="btn-icon" aria-label="Toggle Theme"><i class="fas fa-sun"></i></button>
+      </div>
+    </div>
+
+    <!-- 1. OVERVIEW SECTION -->
+    <div id="overview-section" class="dashboard-content-section">
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-shopping-cart"></i></div>
+          <div class="stat-info">
+            <h3 id="cust-active-orders">0</h3>
+            <p>Active Orders</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+          <div class="stat-info">
+            <h3 id="cust-completed-orders">0</h3>
+            <p>Completed Orders</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-wallet"></i></div>
+          <div class="stat-info">
+            <h3 id="cust-total-spent">K0.00</h3>
+            <p>Total Spent</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-section">
+        <h3>Fresh Arrivals & Recommendations</h3>
+        <div class="seller-products" id="recommendations-container">
+           <p style="color: #888;">Loading recommendations...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. ORDERS SECTION -->
+    <div id="orders-section" class="dashboard-content-section" style="display: none;">
+      <div class="dashboard-section">
+        <h3>My Orders</h3>
+        <div class="table-responsive">
+            <table class="data-table">
+            <thead>
+                <tr>
+                <th>Order ID</th>
+                <th>Product</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Amount</th>
+                <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                <td colspan="6" style="text-align: center; color: #888; padding: 20px;">
+                    No orders have been placed yet.
+                </td>
+                </tr>
+            </tbody>
+            </table>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 3. WISHLIST SECTION -->
+    <div id="wishlist-section" class="dashboard-content-section" style="display: none;">
+        <div class="dashboard-section">
+            <h3>My Wishlist</h3>
+            <div class="seller-products" id="wishlist-container">
+                <p>You haven't saved any items yet.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. PROFILE SETTINGS SECTION -->
+    <div id="settings-section" class="dashboard-content-section" style="display: none;">
+      <div class="dashboard-section" style="max-width: 600px;">
+        <h3>Profile Settings</h3>
+        <form id="profileSettingsForm">
+            <div class="input-group">
+                <label for="updateName">Full Name</label>
+                <input type="text" id="updateName" placeholder="Loading..." required>
+            </div>
+            <div class="input-group">
+                <label for="updateEmail">Email Address</label>
+                <input type="email" id="updateEmail" placeholder="Loading..." disabled style="background: #333; cursor: not-allowed;">
+            </div>
+            <div class="input-group">
+                <label for="updatePass">New Password (leave blank to keep current)</label>
+                <input type="password" id="updatePass" placeholder="New Password">
+            </div>
+            <button type="submit" class="btn-primary">Save Changes</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 5. MESSAGES SECTION -->
+    <div id="messages-section" class="dashboard-content-section" style="display: none;">
+        <div class="dashboard-section">
+            <h3>My Inbox</h3>
+            <div id="messages-container" style="display: flex; flex-direction: column; gap: 15px;">
+                <p>Loading messages...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. MARKETPLACE SECTION (Internal Shop) -->
+    <div id="marketplace-section" class="dashboard-content-section" style="display: none;">
+      <div class="dashboard-section">
+        <h3>Shop Goods & Services</h3>
+        <div style="margin-bottom: 20px;">
+            <input type="text" id="cust-search-input" placeholder="Search for products or services..." style="width: 100%; max-width: 400px; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; outline: none;">
+        </div>
+        <div class="seller-grid" id="marketplace-grid" style="padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+            <p>Loading marketplace...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- WhatsApp-like Chat Modal -->
+<div id="chatModal" class="modal">
+  <div class="modal-content chat-modal-content">
+    <div class="chat-header">
+      <h3 id="chatHeaderTitle">Chat</h3>
+      <span class="close-modal" onclick="closeChatModal()">&times;</span>
+    </div>
+    
+    <div id="chatHistory" class="chat-history"></div>
+    
+    <div id="filePreview" class="file-preview-indicator" style="display:none;"></div>
+    <form id="chatForm" class="chat-input-area">
+      <input type="hidden" id="chatRecipientId">
+      <input type="hidden" id="chatProductId">
+      <input type="file" id="chatFileInput" accept="image/*" style="display: none;">
+      <input type="text" id="chatInput" placeholder="Type a message..." required autocomplete="off" style="flex:1; padding:10px; border-radius:20px; border:none; outline:none;">
+      <button type="button" id="chatFileBtn" class="btn-icon" style="color:#aaa; margin-right:5px;"><i class="fas fa-paperclip"></i></button>
+      <button type="submit" class="btn-primary" style="border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-paper-plane"></i></button>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="script.js"></script>
+</body>
+</html>

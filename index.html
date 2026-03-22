@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SME Connect</title>
+  <link rel="stylesheet" href="styles.css"> 
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header>
+    <h1>SME<span id="admin-trigger" style="cursor: default;"> </span>Connect</h1>
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="sellers.html">Sellers</a></li>
+        <li><a href="About.html">About</a></li>
+        <li><a href="Contact.html">Contact</a></li>
+        <li><button onclick="location.href='signup.html' " class="btn-primary">Sign Up</button></li>
+        <li><button onclick="location.href='login.html' " class="btn-primary">Login</button></li>
+        <li><button id="theme-toggle" class="btn-icon" aria-label="Toggle Theme"><i class="fas fa-sun"></i></button></li>
+        <li><button onclick="toggleCart()" class="btn-icon" aria-label="Cart"><i class="fas fa-shopping-cart"></i><span class="cart-badge" style="background: #ff4757; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; position: absolute; top: 10px; display: none;">0</span></button></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <h2>WELCOME TO SME CONNECT</h2>
+    <h3>TECHNOLOGY</h3>
+    <p>Connect. Trade. Grow.</p>
+    
+    <div style="margin-top: 25px; display: flex; gap: 10px; justify-content: center; width: 100%; max-width: 500px; padding: 0 20px;">
+      <input type="text" id="heroSearchInput" placeholder="What are you looking for?" style="padding: 12px; border-radius: 30px; border: none; outline: none; flex: 1; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+      <button id="heroSearchBtn" class="btn-primary" style="border-radius: 30px; padding: 12px 25px;">Search</button>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features">
+    <article class="card">
+      <i class="fas fa-robot"></i>
+      <h3>AI Powered Technology</h3>
+      <p>Leverage cutting-edge AI tools to boost your business.</p>
+    </article>
+    <article class="card">
+      <i class="fas fa-rocket"></i>
+      <h3>Take the Leap</h3>
+      <p>Expand your opportunities and grow beyond limits.</p>
+    </article>
+    <article class="card">
+      <i class="fas fa-users"></i>
+      <h3>Connect Locally</h3>
+      <p>Join a nationwide network of SMEs and youth entrepreneurs.</p>    </article>
+      <article class="card">
+        <i class="fas fa-money-bill-wave"></i>
+        <h3>Fair prices on Products</h3>
+        <p>Access fair prices for all your product needs from suppliers.</p>
+      </article>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>&copy; 2025 SME Connect. All rights reserved.</p>
+    <section class="social-icons">
+      <a href="#" title="Facebook"><i class="fab fa-facebook"></i></a>
+      <a href="#" title="Twitter"><i class="fab fa-twitter"></i></a>
+      <a href="#" title="LinkedIn"><i class="fab fa-linkedin"></i></a>
+      <a href="#" title="Instagram"><i class="fab fa-instagram"></i></a>
+    </section>
+  </footer>
+  </div>
+</div>
+
+<!-- Product Details Modal -->
+<div id="productDetailsModal" class="modal">
+  <div class="modal-content" style="max-width: 700px; display: flex; gap: 20px; flex-wrap: wrap;">
+    <span class="close-modal" onclick="document.getElementById('productDetailsModal').classList.remove('active')" style="position: absolute; right: 20px; top: 15px;">&times;</span>
+    
+    <div style="flex: 1; min-width: 250px;">
+        <img id="detailImage" src="" alt="Product Image" style="width: 100%; border-radius: 8px; object-fit: cover; height: 300px; background: #333;">
+    </div>
+    
+    <div style="flex: 1; min-width: 250px;">
+        <h2 id="detailName" style="color: var(--primary-color); margin-bottom: 5px;"></h2>
+        <p id="detailCategory" style="color: #888; font-size: 0.9rem; margin-bottom: 15px;"></p>
+        <p id="detailPrice" style="font-size: 1.5rem; font-weight: bold; margin-bottom: 20px;"></p>
+        
+        <h4 style="margin-bottom: 5px;">Description</h4>
+        <p id="detailDesc" style="color: var(--text-muted); margin-bottom: 20px; line-height: 1.6;"></p>
+        
+        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; border: 1px solid #333;">
+            <h4 style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px; color: #1e90ff;">Seller Contact Info</h4>
+            <p style="margin-bottom: 5px;"><i class="fas fa-user-circle"></i> <span id="detailSellerName"></span></p>
+            <p style="margin-bottom: 5px;"><i class="fas fa-envelope"></i> <span id="detailSellerEmail"></span></p>
+            <p><i class="fas fa-map-marker-alt"></i> <span id="detailSellerLocation"></span></p>
+        </div>
+    </div>
+  </div>
+</div>
+
+<!-- Contact Modal -->
+<div id="contactModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal" onclick="document.getElementById('contactModal').classList.remove('active')">&times;</span>
+    <h2>Contact Seller</h2>
+    <form id="contactSellerForm">
+      <input type="hidden" id="contactSellerId">
+      <input type="hidden" id="contactProductId">
+      <div class="input-group">
+        <label for="contactProdName">Product</label>
+        <input type="text" id="contactProdName" readonly style="background: #333; color: #aaa;">
+      </div>
+      <div class="input-group">
+        <label for="contactMessage">Message</label>
+        <textarea id="contactMessage" rows="4" required placeholder="Hi, is this item still available?" style="width: 100%; padding: 10px; background: #222; color: #fff; border: 1px solid #444; border-radius: 8px;"></textarea>
+      </div>
+      <button type="submit" class="btn-primary" style="width: 100%;">Send Message</button>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="script.js"></script>
+</body>
+</html>

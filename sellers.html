@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SME Connect</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header>
+    <h1>SME<span id="admin-trigger" style="cursor: default;"> </span>Connect</h1>
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="sellers.html">Sellers</a></li>
+        <li><a href="About.html">About</a></li>
+        <li><a href="Contact.html">Contact</a></li>
+        <li><button onclick="location.href='signup.html'" class="btn-primary">Sign Up</button></li>
+        <li><button onclick="location.href='login.html'" class="btn-primary">Login</button></li>
+        <li><button id="theme-toggle" class="btn-icon" aria-label="Toggle Theme"><i class="fas fa-sun"></i></button></li>
+        <li><button onclick="toggleCart()" class="btn-icon" aria-label="Cart"><i class="fas fa-shopping-cart"></i><span class="cart-badge" style="background: #ff4757; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; position: absolute; top: 10px; display: none;">0</span></button></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Sellers Hero -->
+  <div class="sellers-header">
+    <h1>Discover Top Zambian Businesses</h1>
+    <p>Connect with verified SMEs, youth entrepreneurs, and service providers.</p>
+  </div>
+
+  <!-- Search & Filter -->
+  <div class="filter-bar">
+    <input type="text" class="search-input" placeholder="Search sellers...">
+    <select class="category-select">
+      <option>All Categories</option>
+      <option>Electronics</option>
+      <option>Fashion</option>
+      <option>Services</option>
+      <option>Home & Living</option>
+      <option>Health & Beauty</option>
+    </select>
+  </div>
+
+  <!-- Container for Dynamic Products -->
+  <div class="seller-grid" id="marketplace-grid">
+    <p style="text-align: center; width: 100%; color: #888;">Loading products...</p>
+  </div>
+
+  <!-- Product Details Modal -->
+  <div id="productDetailsModal" class="modal">
+    <div class="modal-content" style="max-width: 700px; display: flex; gap: 20px; flex-wrap: wrap;">
+      <span class="close-modal" onclick="document.getElementById('productDetailsModal').classList.remove('active')" style="position: absolute; right: 20px; top: 15px;">&times;</span>
+      
+      <div style="flex: 1; min-width: 250px;">
+          <img id="detailImage" src="" alt="Product Image" style="width: 100%; border-radius: 8px; object-fit: cover; height: 300px; background: #333;">
+      </div>
+      
+      <div style="flex: 1; min-width: 250px;">
+          <h2 id="detailName" style="color: var(--primary-color); margin-bottom: 5px;"></h2>
+          <p id="detailCategory" style="color: #888; font-size: 0.9rem; margin-bottom: 15px;"></p>
+          <p id="detailPrice" style="font-size: 1.5rem; font-weight: bold; margin-bottom: 20px;"></p>
+          
+          <h4 style="margin-bottom: 5px;">Description</h4>
+          <p id="detailDesc" style="color: var(--text-muted); margin-bottom: 20px; line-height: 1.6;"></p>
+          
+          <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; border: 1px solid #333;">
+              <h4 style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px; color: #1e90ff;">Seller Contact Info</h4>
+              <p style="margin-bottom: 5px;"><i class="fas fa-user-circle"></i> <span id="detailSellerName"></span></p>
+              <p style="margin-bottom: 5px;"><i class="fas fa-envelope"></i> <span id="detailSellerEmail"></span></p>
+              <p><i class="fas fa-map-marker-alt"></i> <span id="detailSellerLocation"></span></p>
+          </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Modal -->
+  <div id="chatModal" class="modal">
+    <div class="modal-content chat-modal-content">
+      <div class="chat-header">
+        <h3 id="chatHeaderTitle">Chat</h3>
+        <span class="close-modal" onclick="closeChatModal()">&times;</span>
+      </div>
+      
+      <div id="chatHistory" class="chat-history"></div>
+      
+      <div id="filePreview" class="file-preview-indicator" style="display:none;"></div>
+      <form id="chatForm" class="chat-input-area">
+        <input type="hidden" id="chatRecipientId">
+        <input type="hidden" id="chatProductId">
+        <input type="file" id="chatFileInput" accept="image/*" style="display: none;">
+        <input type="text" id="chatInput" placeholder="Type a message..." required autocomplete="off" style="flex:1; padding:10px; border-radius:20px; border:none; outline:none;">
+        <button type="button" id="chatFileBtn" class="btn-icon" style="color:#aaa; margin-right:5px;"><i class="fas fa-paperclip"></i></button>
+        <button type="submit" class="btn-primary" style="border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-paper-plane"></i></button>
+      </form>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="script.js"></script>
+</body>
+</html>

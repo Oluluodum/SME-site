@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - SME Connect</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h2>Admin Panel</h2>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="#" class="active" data-target="overview-section"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+      <li><a href="#" data-target="users-section"><i class="fas fa-users-cog"></i> User Management</a></li>
+      <li><a href="#" data-target="verify-section"><i class="fas fa-check-double"></i> Verify Sellers</a></li>
+      <li><a href="#" data-target="reports-section"><i class="fas fa-chart-bar"></i> Platform Reports</a></li>
+      <li><a href="#" data-target="business-section"><i class="fas fa-briefcase"></i> My Business</a></li>
+      <li><a href="#" data-target="messages-section"><i class="fas fa-envelope"></i> Messages <span class="msg-badge" style="display:none; background: #dc3545; color: white; padding: 2px 6px; border-radius: 50%; font-size: 10px; margin-left: 5px;">0</span></a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <button id="logoutBtn" class="btn-primary" style="width: 100%;">Logout</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="dashboard-header">
+      <div class="header-left">
+        <button id="mobile-menu-btn" class="mobile-menu-btn"><i class="fas fa-bars"></i></button>
+        <h1>Platform Overview</h1>
+      </div>
+      <div class="header-right">
+        <button id="theme-toggle" class="btn-icon" aria-label="Toggle Theme"><i class="fas fa-sun"></i></button>
+      </div>
+    </div>
+
+    <!-- 1. OVERVIEW SECTION -->
+    <div id="overview-section" class="dashboard-content-section">
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-user-plus"></i></div>
+          <div class="stat-info">
+            <h3 id="total-users-count">0</h3>
+            <p>Total Users</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-store"></i></div>
+          <div class="stat-info">
+            <h3 id="total-sellers-count">0</h3>
+            <p>Registered Sellers</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+          <div class="stat-info">
+            <h3 id="pending-count">0</h3>
+            <p>Pending Verifications</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. USER MANAGEMENT SECTION -->
+    <div id="users-section" class="dashboard-content-section" style="display: none;">
+        <div class="dashboard-section">
+            <h3>All Registered Users</h3>
+            <div id="users-list-container">
+                <p>Loading users...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. VERIFY SELLERS SECTION -->
+    <div id="verify-section" class="dashboard-content-section" style="display: none;">
+      <!-- Pending Seller Approvals -->
+      <div class="dashboard-section">
+        <h3>Pending Business Verifications</h3>
+        <div class="table-responsive">
+            <table class="data-table">
+            <thead>
+                <tr>
+                <th>Business Name</th>
+                <th>Owner</th>
+                <th>Email</th>
+                <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="pending-sellers-table">
+                <!-- Populated by JS -->
+                <tr><td colspan="4">Loading...</td></tr>
+            </tbody>
+            </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. REPORTS SECTION -->
+    <div id="reports-section" class="dashboard-content-section" style="display: none;">
+        <div class="dashboard-section" id="reports-container">
+            <h3>Platform Analytics</h3>
+            <p>Loading reports...</p>
+        </div>
+    </div>
+
+    <!-- 5. MY BUSINESS SECTION (For Admin) -->
+    <div id="business-section" class="dashboard-content-section" style="display: none;">
+        <div class="dashboard-section">
+            <h3>My Business Profile</h3>
+            <p style="margin-bottom: 20px; color: #888;">As an admin, you can also list products on the marketplace.</p>
+            
+            <form id="adminBusinessForm" style="margin-bottom: 40px; max-width: 600px;">
+                <div class="input-group">
+                    <label for="adminBizName">Business Name</label>
+                    <input type="text" id="adminBizName" placeholder="Enter Business Name" required>
+                </div>
+                <div class="input-group">
+                    <label for="adminBizType">Business Category</label>
+                    <select id="adminBizType" style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: #222; color: #fff; outline: none;">
+                        <option value="">Select Category</option>
+                        <option value="Electronics">Electronics</option>
+                        <option value="Fashion">Fashion</option>
+                        <option value="Services">Services</option>
+                        <option value="Home & Living">Home & Living</option>
+                        <option value="Health & Beauty">Health & Beauty</option>
+                        <option value="Agriculture">Agriculture</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="adminLocation">Location</label>
+                    <input type="text" id="adminLocation" placeholder="City, Province">
+                </div>
+                <button type="submit" class="btn-primary">Update Business Details</button>
+            </form>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; border-top: 1px solid #333; padding-top: 20px;">
+                <h3>My Products</h3>
+                <button id="addProductBtn" class="btn-primary">+ Add New Product</button>
+            </div>
+            
+            <div class="seller-products" id="sellerProductList">
+                <p>Loading products...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. MESSAGES SECTION -->
+    <div id="messages-section" class="dashboard-content-section" style="display: none;">
+        <div class="dashboard-section">
+            <h3>My Inbox</h3>
+            <div id="messages-container" style="display: flex; flex-direction: column; gap: 15px;">
+                <p>Loading messages...</p>
+            </div>
+        </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add Product Modal (Shared with Seller Dashboard) -->
+<div id="productModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal">&times;</span>
+    <h2>Add New Product</h2>
+    <form id="addProductForm">
+      <div class="input-group">
+        <label for="prodName">Product Name</label>
+        <input type="text" id="prodName" required placeholder="e.g. Handmade Basket">
+      </div>
+      <div class="input-group">
+        <label for="prodCategory">Category</label>
+        <select id="prodCategory" class="input-group" style="width:100%; padding:12px; background:var(--bg-light); color:var(--text-color); border:none; border-radius:8px;">
+          <option value="Electronics">Electronics</option>
+          <option value="Fashion">Fashion</option>
+          <option value="Home & Living">Home & Living</option>
+          <option value="Services">Services</option>
+          <option value="Health & Beauty">Health & Beauty</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label for="prodPrice">Price (ZMW)</label>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="prodPrice" required placeholder="e.g. 150" style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <input type="checkbox" id="contactForPrice" style="width: auto; margin: 0; cursor: pointer;">
+                <label for="contactForPrice" style="margin: 0; font-size: 0.9rem; cursor: pointer; white-space: nowrap;">Contact for Price</label>
+            </div>
+        </div>
+      </div>
+      <div class="input-group">
+        <label for="prodImage">Product Image</label>
+        <input type="file" id="prodImage" accept="image/*" style="padding: 10px; background: #333; color: white; border-radius: 5px; width: 100%;">
+      </div>
+      <div class="input-group">
+        <label for="prodDesc">Description</label>
+        <input type="text" id="prodDesc" required placeholder="Short description...">
+      </div>
+      <button type="submit" class="btn-primary" style="width:100%">List Product</button>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="script.js"></script>
+</body>
+</html>

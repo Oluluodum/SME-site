@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Messages - SME Connect</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body class="wa-body">
+
+<div class="wa-container" id="waContainer">
+  <!-- Left Sidebar: Conversations List -->
+  <aside class="wa-sidebar">
+    <div class="wa-header">
+      <div class="wa-profile-header">
+        <button onclick="history.back()" class="btn-icon" style="margin-right:10px;" title="Back to Dashboard"><i class="fas fa-arrow-left"></i></button>
+        <div class="wa-avatar" style="background: var(--primary-color); color:white;"><i class="fas fa-user"></i></div>
+        <span style="margin-left:10px; font-weight:600;">My Chats</span>
+      </div>
+      <div class="wa-header-actions">
+        <button id="theme-toggle" class="btn-icon"><i class="fas fa-sun"></i></button>
+      </div>
+    </div>
+    
+    <div class="wa-search-bar">
+      <div class="wa-search-input-wrapper">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Search or start new chat" id="waSearchInput">
+      </div>
+    </div>
+
+    <div class="wa-contact-list" id="conversationList">
+      <p style="text-align:center; padding:20px; color:#888;">Loading chats...</p>
+    </div>
+  </aside>
+
+  <!-- Right Main: Chat Area -->
+  <main class="wa-main" id="waMain">
+    <!-- Default Welcome Screen (When no chat selected) -->
+    <div class="wa-welcome" id="waWelcome">
+      <i class="fas fa-comments" style="font-size: 80px; color: #333; margin-bottom: 20px;"></i>
+      <h2>SME Connect Web</h2>
+      <p>Send and receive messages to sellers and customers instantly.</p>
+      <p style="font-size: 12px; color: #666; margin-top: 10px;"><i class="fas fa-lock"></i> End-to-end encrypted</p>
+    </div>
+
+    <!-- Active Chat View -->
+    <div class="wa-chat-view" id="waChatView" style="display: none; flex-direction: column; height: 100%;">
+      <div class="wa-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button class="btn-icon mobile-only" onclick="toggleMobileChat(false)"><i class="fas fa-arrow-left"></i></button>
+          <div class="wa-avatar" id="currentChatAvatar"><i class="fas fa-user"></i></div>
+          <div style="display:flex; flex-direction:column;">
+            <span id="currentChatName" style="font-weight:600;">User Name</span>
+            <span style="font-size:11px; color:#aaa;" id="currentChatStatus">online</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="chatHistory" class="wa-chat-body"></div>
+
+      <div id="filePreview" class="file-preview-indicator" style="display:none;"></div>
+      <form id="chatForm" class="wa-footer">
+        <input type="hidden" id="chatRecipientId">
+        <input type="hidden" id="chatProductId">
+        <!-- Hidden title used by logic to grab product name -->
+        <span id="chatHeaderTitle" style="display:none;">Chat</span> 
+        <input type="file" id="chatFileInput" accept="image/*" style="display: none;">
+
+        <button type="button" class="btn-icon"><i class="fas fa-smile"></i></button>
+        <button type="button" id="chatFileBtn" class="btn-icon"><i class="fas fa-paperclip"></i></button>
+        <input type="text" id="chatInput" placeholder="Type a message" autocomplete="off">
+        <button type="submit" class="btn-icon" style="color: var(--primary-color);"><i class="fas fa-paper-plane"></i></button>
+      </form>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="script.js"></script>
+</body>
+</html>
