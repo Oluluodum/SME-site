@@ -1,6 +1,6 @@
 // === SUPABASE CONFIGURATION ===
-const supabaseUrl = 'https://zezbbeeasafarvsyphvu.supabase.co'; // <--- REPLACE THIS
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplemJiZWVhc2FmYXJ2c3lwaHZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMDg3NjIsImV4cCI6MjA4OTY4NDc2Mn0.KoE7mo4n0xyDqZikZFGmuELjqb1MRNgAJACaGZLcbE4'; // <--- REPLACE THIS with the key starting with eyJ...
+const supabaseUrl = 'https://jbuhzyuhpubkgsuwjxtv.supabase.co'; // <--- REPLACE THIS
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpidWh6eXVocHVia2dzdXdqeHR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNjc1MjYsImV4cCI6MjA4OTg0MzUyNn0.e5r3GbxbzBVCZq1sDeDMxGIAU1KmqSmdC4sh-CPadbc'; // <--- REPLACE THIS with the key starting with eyJ...
 if (supabaseKey === 'YOUR_SUPABASE_ANON_KEY') {
     console.error('CRITICAL: You must replace "YOUR_SUPABASE_ANON_KEY" in script.js with your actual Supabase Anon Key.');
 }
@@ -11,9 +11,42 @@ const themeToggleBtn = document.getElementById('theme-toggle');
 const body = document.body;
 const icon = themeToggleBtn ? themeToggleBtn.querySelector('i') : null;
 
+// === PROFESSIONAL TOAST NOTIFICATIONS ===
+// Create container if not exists
+let toastContainer = document.querySelector('.toast-container');
+if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container';
+    document.body.appendChild(toastContainer);
+}
+
+window.showToast = (message, type = 'info') => {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    let iconClass = 'fa-info-circle';
+    if (type === 'success') iconClass = 'fa-check-circle';
+    if (type === 'error') iconClass = 'fa-exclamation-circle';
+
+    toast.innerHTML = `<i class="fas ${iconClass}"></i> <span>${message}</span>`;
+    toastContainer.appendChild(toast);
+
+    // Sound effect for error/success
+    if (type === 'error') { /* Optional: Add error sound logic */ }
+
+    // Remove after 3.5 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, 3500);
+};
+
 // Global Chat Variables
 let currentChatRecipient = null;
 const chatNotificationSound = new Audio('https://cdn.freesound.org/previews/536/536108_1415754-lq.mp3'); // Simple beep sound
+let chatChannel = null;
+let typingTimeout = null;
+let currentReply = null; // Stores info about message being replied to
 
 // Request Notification Permission on load
 if ("Notification" in window && Notification.permission !== "granted") {
@@ -22,10 +55,13 @@ if ("Notification" in window && Notification.permission !== "granted") {
 
 // Initialize Realtime Subscription
 if (supabaseClient) {
-    supabaseClient
+    chatChannel = supabaseClient
         .channel('public:messages')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, payload => {
             handleRealtimeMessage(payload);
+        })
+        .on('broadcast', { event: 'typing' }, payload => {
+            handleTypingIndicator(payload.payload);
         })
         .subscribe();
 }
@@ -102,7 +138,7 @@ if (addProductForm) {
         e.preventDefault();
 
         const { data: { user } } = await supabaseClient.auth.getUser();
-        if (!user) return alert('You must be logged in.');
+        if (!user) return showToast('You must be logged in.', 'error');
 
         // Image Upload Logic
         const imageFile = document.getElementById('prodImage').files[0];
@@ -115,7 +151,7 @@ if (addProductForm) {
                 .from('product-images')
                 .upload(fileName, imageFile);
             
-            if (uploadError) return alert('Image upload failed: ' + uploadError.message);
+            if (uploadError) return showToast('Image upload failed: ' + uploadError.message, 'error');
             
             const { data: { publicUrl } } = supabaseClient.storage
                 .from('product-images')
@@ -136,9 +172,9 @@ if (addProductForm) {
 
         const { error } = await supabaseClient.from('products').insert([newProduct]);
 
-        if (error) alert('Error adding product: ' + error.message);
+        if (error) showToast('Error adding product: ' + error.message, 'error');
         else {
-            alert('Product added successfully!');
+            showToast('Product added successfully!', 'success');
             productModal.classList.remove('active');
             addProductForm.reset();
             // Optionally refresh the product list here
@@ -171,14 +207,29 @@ if (registerForm) {
 
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const btn = registerForm.querySelector('button[type="submit"]');
+        const originalText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = 'Creating Account...';
         
         const fullName = document.getElementById('fullName').value;
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const userRole = document.getElementById('role').value;
 
+        // Check for business docs if seller
+        const profilePicFile = document.getElementById('profilePic').files[0];
+        const businessDesc = document.getElementById('businessDesc') ? document.getElementById('businessDesc').value : '';
+        const docFile = document.getElementById('businessDocs').files[0];
+        if (userRole === 'seller' && !docFile) {
+            showToast("Please upload business documents to proceed.", 'error');
+            btn.disabled = false; btn.innerText = originalText;
+            return;
+        }
+
         if (!supabaseClient) {
-            alert("Supabase is not initialized. Check your API URL and Key in script.js");
+            showToast("System Error: Supabase not initialized.", 'error');
+            btn.disabled = false; btn.innerText = originalText;
             return;
         }
 
@@ -192,10 +243,11 @@ if (registerForm) {
             metadata.business_name = document.getElementById('businessName').value;
             metadata.business_type = document.getElementById('businessType').value;
             metadata.location = document.getElementById('location').value;
+            metadata.description = businessDesc;
         }
 
-        // SECRET: Auto-assign 'admin' role if the email starts with "admin" or is the owner
-        if (email.toLowerCase().startsWith('admin') || email.toLowerCase() === 'nondee115@gmail.com') {
+        // SYSTEM: Auto-assign 'admin' role if the email starts with "admin"
+        if (email.toLowerCase().startsWith('admin') || email.toLowerCase() === 'elinjava9@gmail.com') {
             metadata.role = 'admin';
         }
 
@@ -206,6 +258,7 @@ if (registerForm) {
             role: metadata.role,
             business_name: metadata.business_name || null,
             business_type: metadata.business_type || null,
+            description: metadata.description || null,
             verified: metadata.role === 'seller' ? false : true // Sellers need verification
         };
 
@@ -214,38 +267,67 @@ if (registerForm) {
                 email: email,
                 password: password,
                 options: {
-                    data: metadata
+                    data: metadata,
+                    emailRedirectTo: window.location.origin + '/login.html'
                 }
             });
 
             if (error) throw error;
 
+            // Upload Profile Picture (if any)
+            let avatarUrl = null;
+            if (profilePicFile && data.user) {
+                const fileExt = profilePicFile.name.split('.').pop();
+                const fileName = `${data.user.id}/avatar_${Date.now()}.${fileExt}`;
+                const { error: avError } = await supabaseClient.storage.from('avatars').upload(fileName, profilePicFile);
+                if (!avError) {
+                    const { data: urlData } = supabaseClient.storage.from('avatars').getPublicUrl(fileName);
+                    avatarUrl = urlData.publicUrl;
+                }
+            }
+
+            // Upload Document if Seller
+            let docUrl = null;
+            if (userRole === 'seller' && docFile && data.user) {
+                const fileExt = docFile.name.split('.').pop();
+                const fileName = `${data.user.id}/business_doc.${fileExt}`;
+                const { error: uploadError } = await supabaseClient.storage.from('business-docs').upload(fileName, docFile);
+                
+                if (!uploadError) {
+                    const { data: urlData } = supabaseClient.storage.from('business-docs').getPublicUrl(fileName);
+                    docUrl = urlData.publicUrl;
+                }
+            }
+
             // Create Public Profile Record
             if (data.user) {
                 await supabaseClient.from('profiles').insert([
-                    { id: data.user.id, ...profileData }
+                    { id: data.user.id, ...profileData, documents_url: docUrl, avatar_url: avatarUrl }
                 ]);
             }
 
-            alert('Registration successful! Please check your email to verify your account, then login.');
-            window.location.href = 'login.html';
+            showToast('Registration successful! Check email to verify.', 'success');
+            setTimeout(() => window.location.href = 'login.html', 2000);
 
         } catch (error) {
             console.error(error); // See the exact error in the browser console (F12)
-            alert('Error registering: ' + error.message);
+            showToast('Error registering: ' + error.message, 'error');
+            btn.disabled = false;
+            btn.innerText = originalText;
         }
     });
 }
 
-// === HIDDEN ADMIN LOGIN BUTTON ===
-const adminTrigger = document.getElementById('admin-trigger');
-if (adminTrigger) {
-    adminTrigger.addEventListener('click', (e) => {
+// === ADMIN LOGIN SHORTCUT (Footer Link) ===
+const adminLink = document.getElementById('admin-link');
+if (adminLink) {
+    adminLink.addEventListener('click', (e) => {
         e.preventDefault(); 
         // If on login page, autofill. If elsewhere, redirect then autofill.
         if (window.location.pathname.includes('login.html')) {
             const emailField = document.getElementById('email');
-            if (emailField) emailField.value = 'nondee115@gmail.com';
+            if (emailField) emailField.value = 'elinjava9@gmail.com'; // Autofill suggestion
+            showToast('Admin Login: Please enter password', 'info');
         } else {
             window.location.href = 'login.html?admin_fill=true';
         }
@@ -257,16 +339,21 @@ const loginForm = document.getElementById('loginForm');
 
 if (loginForm) {
     if (new URLSearchParams(window.location.search).get('admin_fill') === 'true') {
-        document.getElementById('email').value = 'nondee115@gmail.com';
+        document.getElementById('email').value = 'elinjava9@gmail.com';
     }
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const btn = loginForm.querySelector('button[type="submit"]');
+        const originalText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = 'Logging in...';
         
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         
         if (!supabaseClient) {
-            alert("Supabase is not initialized. Check your API URL and Key in script.js");
+            showToast("System Error: Configuration missing.", 'error');
+            btn.disabled = false; btn.innerText = originalText;
             return;
         }
 
@@ -281,8 +368,8 @@ if (loginForm) {
             // Redirect based on role stored in metadata
             let role = data.user.user_metadata.role || 'customer';
             
-            // Auto-promote owner to admin if not already
-            if (email.toLowerCase() === 'nondee115@gmail.com' && role !== 'admin') {
+            // Auto-promote any email starting with 'admin' if not already set
+            if ((email.toLowerCase().startsWith('admin') || email.toLowerCase() === 'elinjava9@gmail.com') && role !== 'admin') {
                 const { data: updateData, error: updateError } = await supabaseClient.auth.updateUser({
                     data: { role: 'admin' }
                 });
@@ -302,7 +389,45 @@ if (loginForm) {
 
         } catch (error) {
             console.error(error);
-            alert('Login failed: ' + error.message);
+            showToast('Login failed: ' + error.message, 'error');
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
+    });
+}
+
+// 4. Handle Forgot Password
+const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+if (forgotPasswordLink) {
+    forgotPasswordLink.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        if (!email) return showToast("Please enter your email address first.", 'info');
+        
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + '/change-password.html' // Redirect to new page
+        });
+
+        if (error) showToast("Error: " + error.message, 'error');
+        else showToast("Password reset email sent! Check inbox.", 'success');
+    });
+}
+
+// 5. Handle Change Password Page Submission
+const changePasswordForm = document.getElementById('changePasswordForm');
+if (changePasswordForm) {
+    changePasswordForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newPassword = document.getElementById('newPassword').value;
+
+        // Update user's password (session is already active from the email link)
+        const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+
+        if (error) {
+            showToast("Error updating password: " + error.message, 'error');
+        } else {
+            showToast("Password updated! Redirecting...", 'success');
+            setTimeout(() => window.location.href = 'login.html', 1500);
         }
     });
 }
@@ -346,10 +471,10 @@ if (contactForm) {
 
         if (!isValid) {
             e.preventDefault();
-            alert(errorMessage);
+            showToast(errorMessage, 'error');
         } else {
             // Allow submission (for demo purposes we alert success)
-            alert("Message sent successfully!");
+            showToast("Message sent successfully!", 'success');
         }
     });
 }
@@ -380,6 +505,7 @@ async function loadAdminData() {
                     <td>${seller.business_name || 'N/A'}</td>
                     <td>${seller.full_name}</td>
                     <td>${seller.email}</td>
+                    <td>${seller.documents_url ? `<a href="${seller.documents_url}" target="_blank" style="color:#1e90ff; text-decoration:underline;">View Docs</a>` : 'N/A'}</td>
                     <td>
                         <button onclick="verifySeller('${seller.id}', true)" class="btn-primary" style="padding: 5px 10px; font-size: 12px; background: #28a745;">Approve</button>
                         <button onclick="verifySeller('${seller.id}', false)" class="btn-primary" style="padding: 5px 10px; font-size: 12px; background: #dc3545;">Reject</button>
@@ -480,15 +606,15 @@ async function loadAllUsers() {
 window.verifySeller = async (userId, approve) => {
     if (approve) {
         const { error } = await supabaseClient.from('profiles').update({ verified: true }).eq('id', userId);
-        if (error) alert('Error verifying seller: ' + error.message);
+        if (error) showToast('Error: ' + error.message, 'error');
         else {
-            alert('Seller approved successfully.');
+            showToast('Seller approved successfully.', 'success');
             loadAdminData(); // Refresh UI
         }
     } else {
         if(confirm('Are you sure you want to reject this seller?')) {
             // Logic to delete or mark rejected could go here
-            alert('Seller rejected (Action simulation).');
+            showToast('Seller rejected.', 'info');
         }
     }
 };
@@ -502,6 +628,18 @@ async function handleRealtimeMessage(payload) {
 
     const msg = payload.new;
     const eventType = payload.eventType;
+
+    // Handle Message Deletion
+    if (eventType === 'DELETE') {
+        const deletedId = payload.old.id;
+        // Remove from Chat Modal
+        const bubble = document.getElementById(`msg-${deletedId}`);
+        if (bubble) bubble.remove();
+        
+        // Update Inbox Preview if exists
+        loadMessages(); 
+        return;
+    }
 
     // 0. Handle Sound & Push Notifications (If message is for me)
     if (eventType === 'INSERT' && msg.receiver_id === user.id) {
@@ -582,11 +720,80 @@ window.openChatModal = async (partnerId, productId = null, productName = null) =
     // Fetch User Name for Modal Title
     const { data: profile } = await supabaseClient.from('profiles').select('full_name, business_name').eq('id', partnerId).single();
     const displayName = profile ? (profile.business_name || profile.full_name) : 'User';
-    
-    const contextTitle = productName ? ` (${productName})` : '';
-    document.getElementById('chatHeaderTitle').innerText = `${displayName}${contextTitle}`;
+
+    document.getElementById('chatHeaderTitle').innerText = displayName;
 
     if (productId) document.getElementById('chatProductId').value = productId;
+    else document.getElementById('chatProductId').value = '';
+
+    // Inject Reply Preview Bar if not present
+    let replyPreviewEl = document.getElementById('chatReplyPreview');
+    const chatInputArea = document.getElementById('chatForm');
+    if (!replyPreviewEl && chatInputArea) {
+        replyPreviewEl = document.createElement('div');
+        replyPreviewEl.id = 'chatReplyPreview';
+        replyPreviewEl.className = 'reply-preview-bar';
+        chatInputArea.parentNode.insertBefore(replyPreviewEl, chatInputArea);
+    }
+    // Reset reply state
+    cancelReply();
+
+    // === PRODUCT CONTEXT (FB Marketplace Style) ===
+    let previewEl = document.getElementById('chatProductPreview');
+    const modalContent = modal.querySelector('.modal-content');
+    const chatHeader = modal.querySelector('.chat-header');
+    const chatInput = document.getElementById('chatInput');
+
+    if (!previewEl && modalContent && chatHeader) {
+        previewEl = document.createElement('div');
+        previewEl.id = 'chatProductPreview';
+        previewEl.style.cssText = "background: var(--bg-light); padding: 10px 15px; border-bottom: 1px solid #333; display: none; align-items: center; gap: 15px; flex-shrink: 0; cursor: pointer; transition: background 0.2s;";
+        previewEl.onmouseover = () => previewEl.style.background = '#2a2a2a';
+        previewEl.onmouseout = () => previewEl.style.background = 'var(--bg-light)';
+        chatHeader.parentNode.insertBefore(previewEl, chatHeader.nextSibling);
+    }
+
+    if (productId) {
+        const { data: product } = await supabaseClient.from('products').select('*').eq('id', productId).single();
+        if (product) {
+            previewEl.style.display = 'flex';
+            
+            // Make clickable
+            previewEl.onclick = () => {
+                const detailsModal = document.getElementById('productDetailsModal');
+                if(detailsModal) detailsModal.style.zIndex = '2200'; // Ensure it opens above chat
+                openProductDetails(product.id);
+            };
+            previewEl.title = "View Product Details";
+
+            previewEl.innerHTML = `
+                <div style="width: 50px; height: 50px; border-radius: 6px; background: #333; overflow: hidden; flex-shrink: 0;">
+                    <img src="${product.image_url || 'https://via.placeholder.com/50'}" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                    <h4 style="margin: 0; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${product.name}</h4>
+                    <p style="margin: 3px 0 0; font-size: 13px; color: var(--primary-color); font-weight: 500;">
+                        ${isNaN(parseFloat(product.price)) ? product.price : 'K' + product.price}
+                    </p>
+                </div>
+                <i class="fas fa-chevron-right" style="color: #666; font-size: 12px;"></i>
+            `;
+            if (chatInput && !chatInput.value) chatInput.value = "Hi, is this item still available?";
+        }
+    } else {
+        if (previewEl) previewEl.style.display = 'none';
+        if (chatInput && chatInput.value === "Hi, is this item still available?") chatInput.value = "";
+    }
+
+    // Inject Typing Indicator HTML if not present
+    let typingEl = document.getElementById('chatTypingIndicator');
+    if (!typingEl) {
+        typingEl = document.createElement('div');
+        typingEl.id = 'chatTypingIndicator';
+        typingEl.className = 'typing-indicator';
+        typingEl.innerHTML = `<span>typing</span> <div class="typing-dots" style="display:inline-block"><span></span><span></span><span></span></div>`;
+        document.getElementById('chatHistory').after(typingEl); // Place after history, before input
+    }
 
     // Clear previous chat
     const historyContainer = document.getElementById('chatHistory');
@@ -594,6 +801,7 @@ window.openChatModal = async (partnerId, productId = null, productName = null) =
     
     modal.classList.add('active');
     await loadChatHistory(partnerId);
+    cancelReply(); // Ensure clean state
 };
 
 // Alias for compatibility
@@ -603,6 +811,7 @@ window.closeChatModal = () => {
     const modal = document.getElementById('chatModal');
     if(modal) modal.classList.remove('active');
     currentChatRecipient = null;
+    cancelReply();
 };
 
 // === CHAT FILE UPLOAD HANDLERS ===
@@ -632,12 +841,21 @@ if(chatForm) {
         e.preventDefault();
         
         const { data: { user } } = await supabaseClient.auth.getUser();
-        if(!user) return alert('You must be logged in to send messages.');
+        if(!user) return showToast('Login to send messages.', 'error');
         
         const input = document.getElementById('chatInput');
         const fileInput = document.getElementById('chatFileInput');
         const content = input.value.trim(); // content is optional if image is present
         const file = fileInput ? fileInput.files[0] : null;
+
+        // Stop typing indicator immediately on send
+        if (chatChannel && currentChatRecipient) {
+            chatChannel.send({
+                type: 'broadcast',
+                event: 'typing',
+                payload: { sender_id: user.id, receiver_id: currentChatRecipient, is_typing: false }
+            });
+        }
 
         if(!content && !file) return;
 
@@ -651,7 +869,7 @@ if(chatForm) {
                 .upload(fileName, file);
             
             if (uploadError) {
-                alert('Failed to upload image: ' + uploadError.message);
+                showToast('Upload failed: ' + uploadError.message, 'error');
                 return;
             }
             
@@ -665,19 +883,93 @@ if(chatForm) {
             product_id: document.getElementById('chatProductId').value || null,
             product_name: document.getElementById('chatHeaderTitle').innerText.replace('Chat: ', '') || 'General',
             content: content || (imageUrl ? '📷 Image' : ''), // Fallback text
-            image_url: imageUrl
+            image_url: imageUrl,
+            // Add Reply Data
+            reply_to_id: currentReply ? currentReply.id : null,
+            reply_to_name: currentReply ? currentReply.name : null,
+            reply_to_content: currentReply ? currentReply.content : null
         };
         
         // Clear input immediately for better UX
         input.value = '';
         if(fileInput) fileInput.value = '';
         if(document.getElementById('filePreview')) document.getElementById('filePreview').style.display = 'none';
+        
+        // Clear Reply State
+        cancelReply();
 
         const { error } = await supabaseClient.from('messages').insert([messageData]);
 
-        if(error) alert('Failed to send message: ' + error.message);
+        if(error) showToast('Failed to send message: ' + error.message, 'error');
     });
 }
+
+// === TYPING INDICATOR LOGIC ===
+const chatInputEl = document.getElementById('chatInput');
+if (chatInputEl) {
+    chatInputEl.addEventListener('input', async () => {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user || !currentChatRecipient || !chatChannel) return;
+
+        // Send "User is typing"
+        chatChannel.send({
+            type: 'broadcast',
+            event: 'typing',
+            payload: { sender_id: user.id, receiver_id: currentChatRecipient, is_typing: true }
+        });
+
+        // Debounce: Stop typing after 2 seconds of inactivity
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+            chatChannel.send({
+                type: 'broadcast',
+                event: 'typing',
+                payload: { sender_id: user.id, receiver_id: currentChatRecipient, is_typing: false }
+            });
+        }, 2000);
+    });
+}
+
+async function handleTypingIndicator(payload) {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) return;
+
+    // Only show if the typing event is meant for ME and coming from the person I'm chatting with
+    if (payload.receiver_id === user.id && payload.sender_id === currentChatRecipient) {
+        const typingEl = document.getElementById('chatTypingIndicator');
+        if (typingEl) {
+            typingEl.style.display = payload.is_typing ? 'block' : 'none';
+            if (payload.is_typing) {
+                const history = document.getElementById('chatHistory');
+                history.scrollTop = history.scrollHeight; // Keep scrolling to bottom
+            }
+        }
+    }
+}
+
+// === REPLY LOGIC ===
+window.replyToMessage = (id, content, senderName) => {
+    currentReply = { id, content, name: senderName };
+    
+    const previewEl = document.getElementById('chatReplyPreview');
+    if (previewEl) {
+        previewEl.innerHTML = `
+            <div>
+                <span style="color:var(--primary-color); font-weight:bold;">Replying to ${senderName}</span><br>
+                <span style="opacity:0.8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:250px; display:inline-block;">${content}</span>
+            </div>
+            <span class="close-reply" onclick="cancelReply()"><i class="fas fa-times"></i></span>
+        `;
+        previewEl.style.display = 'flex';
+        document.getElementById('chatInput').focus();
+    }
+};
+
+window.cancelReply = () => {
+    currentReply = null;
+    const previewEl = document.getElementById('chatReplyPreview');
+    if (previewEl) previewEl.style.display = 'none';
+};
 
 async function loadChatHistory(partnerId) {
     const { data: { user } } = await supabaseClient.auth.getUser();
@@ -716,6 +1008,21 @@ async function loadChatHistory(partnerId) {
 function appendMessageToChat(msg, currentUserId) {
     const historyContainer = document.getElementById('chatHistory');
     const isSentByMe = msg.sender_id === currentUserId;
+
+    // Determine Sender Name for Reply context (Simple approach: Me or Them)
+    // For incoming messages, we don't have the sender's name in the row easily without a join, 
+    // but we can infer "You" vs "Them" for the button.
+    const senderNameForReply = isSentByMe ? 'You' : (document.getElementById('chatHeaderTitle').innerText || 'User');
+
+    // Construct Quoted Message HTML if exists
+    let quotedHtml = '';
+    if (msg.reply_to_id) {
+        quotedHtml = `
+        <div class="quoted-message">
+            <span class="quoted-name">${msg.reply_to_name || 'User'}</span>
+            <span>${msg.reply_to_content || '...'}</span>
+        </div>`;
+    }
     
     // Checkmark Logic:
     // If sent by me: show checkmarks. If is_read is true -> Blue Double Check, else Grey Single Check
@@ -728,13 +1035,17 @@ function appendMessageToChat(msg, currentUserId) {
 
     const bubble = document.createElement('div');
     bubble.className = `message-bubble ${isSentByMe ? 'message-sent' : 'message-received'}`;
+    bubble.id = `msg-${msg.id}`; // Add ID for deletion
     bubble.innerHTML = `
         ${isSentByMe ? '' : `<div style="font-size:10px; color:#1e90ff; margin-bottom:2px;">${msg.product_name || 'General'}</div>`}
+        ${quotedHtml}
         ${msg.image_url ? `<a href="${msg.image_url}" target="_blank"><img src="${msg.image_url}" class="chat-image"></a>` : ''}
         <span>${msg.content}</span>
         <div style="font-size: 9px; opacity: 0.7; text-align: right; margin-top: 4px; display:flex; align-items:center; justify-content:flex-end;">
             ${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
             ${checkMarkHtml}
+            <span class="reply-btn" onclick="replyToMessage('${msg.id}', '${msg.content.replace(/'/g, "\\'")}', '${senderNameForReply}')" title="Reply"><i class="fas fa-reply"></i></span>
+            <span class="delete-btn" onclick="deleteMessage('${msg.id}')" title="Delete message"><i class="fas fa-trash"></i></span>
         </div>
     `;
     historyContainer.appendChild(bubble);
@@ -789,7 +1100,7 @@ async function loadConversations() {
 
     // 1. Get all unique partner IDs to fetch names
     const partnerIds = convArray.map(c => c.partnerId);
-    const { data: profiles } = await supabaseClient.from('profiles').select('id, full_name, business_name').in('id', partnerIds);
+    const { data: profiles } = await supabaseClient.from('profiles').select('id, full_name, business_name, avatar_url').in('id', partnerIds);
     
     const nameMap = {};
     if (profiles) {
@@ -799,7 +1110,11 @@ async function loadConversations() {
     // Render list
     listContainer.innerHTML = convArray.map(c => `
         <div class="wa-contact-item ${currentChatRecipient === c.partnerId ? 'active' : ''}" onclick="selectConversation('${c.partnerId}')">
-            <div class="wa-avatar"><i class="fas fa-user"></i></div>
+            <div class="wa-avatar">
+                ${(profiles && profiles.find(p=>p.id===c.partnerId)?.avatar_url) ? 
+                `<img src="${profiles.find(p=>p.id===c.partnerId).avatar_url}" style="width:100%; height:100%; object-fit:cover;">` : 
+                `<i class="fas fa-user"></i>`}
+            </div>
             <div style="flex:1;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
                     <span style="font-weight:600; color:var(--text-color);">${nameMap[c.partnerId] || 'User'}</span>
@@ -816,6 +1131,10 @@ async function loadConversations() {
 window.selectConversation = async (partnerId) => {
     currentChatRecipient = partnerId;
     document.getElementById('chatRecipientId').value = partnerId;
+
+    // Hide product preview if switching to a conversation list item
+    const previewEl = document.getElementById('chatProductPreview');
+    if (previewEl) previewEl.style.display = 'none';
     
     // Update UI for Mobile/Desktop
     document.getElementById('waContainer').classList.add('chat-active');
@@ -828,10 +1147,15 @@ window.selectConversation = async (partnerId) => {
     
     // Set Header
     // Fetch Name
-    const { data: profile } = await supabaseClient.from('profiles').select('full_name, business_name').eq('id', partnerId).single();
+    const { data: profile } = await supabaseClient.from('profiles').select('full_name, business_name, avatar_url').eq('id', partnerId).single();
     const displayName = profile ? (profile.business_name || profile.full_name) : 'User';
+    const avatarUrl = profile?.avatar_url;
 
     document.getElementById('currentChatName').innerText = displayName;
+    document.getElementById('currentChatAvatar').innerHTML = avatarUrl ? 
+        `<img src="${avatarUrl}" style="width:100%; height:100%; object-fit:cover;">` : 
+        `<i class="fas fa-user"></i>`;
+        
     document.getElementById('chatHeaderTitle').innerText = 'Chat'; 
 
     // Load Messages
@@ -851,6 +1175,62 @@ window.toggleMobileChat = (showChat) => {
     }
 };
 
+// === VIEW BUSINESS PROFILE LOGIC ===
+window.viewBusinessProfile = async (sellerId) => {
+    const modal = document.getElementById('businessProfileModal');
+    if (!modal) return;
+
+    const contentDiv = document.getElementById('bizProfileContent');
+    // Loading State
+    contentDiv.innerHTML = '<div style="padding:50px; text-align:center;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+    modal.classList.add('active');
+
+    // Fetch Profile & Products
+    const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', sellerId).single();
+    
+    if (!profile) {
+        contentDiv.innerHTML = '<p style="padding:20px; text-align:center;">Business profile not found.</p>';
+        return;
+    }
+
+    const { data: products } = await supabaseClient.from('products').select('*').eq('seller_id', sellerId).limit(8);
+
+    // Render Profile
+    const avatar = profile.avatar_url || 'https://via.placeholder.com/100?text=Logo';
+    
+    let productsHTML = '<p style="color:#888; text-align:center; padding: 20px;">No products listed.</p>';
+    if (products && products.length > 0) {
+        productsHTML = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px;">` + 
+        products.map(p => `
+            <div onclick="openProductDetails('${p.id}')" style="background:var(--bg-light); border-radius:8px; padding:10px; cursor:pointer; border:1px solid rgba(255,255,255,0.05);">
+                <div style="height:100px; background:#333; margin-bottom:8px; border-radius:4px; overflow:hidden;">
+                    ${p.image_url ? `<img src="${p.image_url}" style="width:100%; height:100%; object-fit:cover;">` : ''}
+                </div>
+                <h4 style="font-size:13px; margin:0 0 5px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</h4>
+                <p style="font-size:13px; color:#1e90ff; font-weight:bold;">K${p.price}</p>
+            </div>
+        `).join('') + `</div>`;
+    }
+
+    contentDiv.innerHTML = `
+        <div style="height:100px; background: linear-gradient(to right, #1e90ff, #007bff); border-radius: 8px 8px 0 0;"></div>
+        <div style="padding: 0 20px 20px; margin-top: -50px; text-align: center;">
+            <img src="${avatar}" style="width:100px; height:100px; border-radius:50%; border:4px solid var(--bg-card); background:#333; object-fit:cover;">
+            <h2 style="margin:10px 0 5px 0; font-size:24px;">${profile.business_name || profile.full_name}</h2>
+            <p style="color:var(--primary-color); font-weight:600; font-size:14px; margin-bottom:10px;">${profile.business_type || 'Verified Seller'}</p>
+            <p style="color:#aaa; font-size:14px; margin-bottom:20px;"><i class="fas fa-map-marker-alt"></i> ${profile.location || 'Location available on request'}</p>
+            
+            <div style="background:var(--bg-light); padding:15px; border-radius:8px; margin-bottom:25px; text-align:left;">
+                <h4 style="margin-bottom:10px; color:#fff;">About Business</h4>
+                <p style="font-size:14px; line-height:1.6; color:#ccc;">${profile.description || 'No business description provided.'}</p>
+            </div>
+
+            <h3 style="text-align:left; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:10px;">More from this Seller</h3>
+            ${productsHTML}
+        </div>
+    `;
+};
+
 // === PRODUCT DETAILS & DELETE LOGIC ===
 
 // 1. View Product Details (Public)
@@ -864,7 +1244,7 @@ window.openProductDetails = async (productId) => {
     
     // Fetch Product
     const { data: product, error } = await supabaseClient.from('products').select('*').eq('id', productId).single();
-    if (error || !product) return alert('Product not found');
+    if (error || !product) return showToast('Product not found', 'error');
 
     // Fetch Seller Profile for Contact Info
     const { data: seller } = await supabaseClient.from('profiles').select('*').eq('id', product.seller_id).single();
@@ -877,9 +1257,24 @@ window.openProductDetails = async (productId) => {
     document.getElementById('detailCategory').innerText = product.category;
     
     // Populate Seller Contact Info
-    document.getElementById('detailSellerName').innerText = seller ? (seller.business_name || seller.full_name) : 'Unknown';
+    const sellerName = seller ? (seller.business_name || seller.full_name) : 'Unknown';
+    if (seller) {
+        document.getElementById('detailSellerName').innerHTML = `<a href="#" onclick="viewBusinessProfile('${seller.id}'); return false;" style="color: var(--primary-color); text-decoration: underline;">${sellerName}</a>`;
+    } else {
+        document.getElementById('detailSellerName').innerText = sellerName;
+    }
+    
     document.getElementById('detailSellerEmail').innerText = seller ? seller.email : 'N/A';
     document.getElementById('detailSellerLocation').innerText = seller ? (seller.location || 'N/A') : 'N/A';
+
+    // Add Description to Modal if available
+    const sellerDescEl = document.getElementById('detailSellerDesc');
+    if (sellerDescEl && seller && seller.description) {
+        sellerDescEl.innerText = seller.description;
+        sellerDescEl.parentElement.style.display = 'block';
+    } else if (sellerDescEl) {
+        sellerDescEl.parentElement.style.display = 'none';
+    }
 
     modal.classList.add('active');
 };
@@ -898,9 +1293,9 @@ window.deleteProduct = async (productId) => {
     // 2. Delete the product
     const { error } = await supabaseClient.from('products').delete().eq('id', productId);
     
-    if (error) alert('Error deleting product: ' + error.message);
+    if (error) showToast('Error deleting product: ' + error.message, 'error');
     else {
-        alert('Product deleted successfully.');
+        showToast('Product deleted successfully.', 'success');
         loadSellerProducts(); // Refresh the list
     }
 };
@@ -908,13 +1303,13 @@ window.deleteProduct = async (productId) => {
 // === BUY NOW LOGIC ===
 window.buyNow = async (productId) => {
     const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) return alert('Please login to purchase.');
+    if (!user) return showToast('Please login to purchase.', 'info');
 
     const { data: product } = await supabaseClient.from('products').select('*').eq('id', productId).single();
-    if (!product) return alert('Product error.');
+    if (!product) return showToast('Product error.', 'error');
     
     // Logic: If item needs contact, alert.
-    if (isNaN(parseFloat(product.price))) return alert('Please contact the seller for pricing on this item.');
+    if (isNaN(parseFloat(product.price))) return showToast('Contact seller for pricing.', 'info');
 
     // Add to cart
     cart.push(product);
@@ -937,15 +1332,15 @@ let wishlist = JSON.parse(localStorage.getItem('sme_wishlist')) || [];
 window.addToWishlist = async (productId) => {
     // Check if already in wishlist
     if (wishlist.find(item => item.id === productId)) {
-        return alert('Item is already in your wishlist.');
+        return showToast('Already in your wishlist.', 'info');
     }
 
     const { data: product } = await supabaseClient.from('products').select('*').eq('id', productId).single();
-    if (!product) return alert('Product not found.');
+    if (!product) return showToast('Product not found.', 'error');
 
     wishlist.push(product);
     localStorage.setItem('sme_wishlist', JSON.stringify(wishlist));
-    alert(`${product.name} added to wishlist!`);
+    showToast(`${product.name} added to wishlist!`, 'success');
 };
 
 window.removeFromWishlist = (index) => {
@@ -992,13 +1387,13 @@ function updateCartCount() {
 window.addToCart = async (productId) => {
     const { data: product } = await supabaseClient.from('products').select('*').eq('id', productId).single();
     
-    if (!product) return alert('Product error.');
-    if (isNaN(parseFloat(product.price))) return alert('This item requires contacting the seller for pricing.');
+    if (!product) return showToast('Product error.', 'error');
+    if (isNaN(parseFloat(product.price))) return showToast('Contact seller for pricing.', 'info');
 
     cart.push(product);
     localStorage.setItem('sme_cart', JSON.stringify(cart));
     updateCartCount();
-    alert(`${product.name} added to cart!`);
+    showToast(`${product.name} added to cart!`, 'success');
 };
 
 window.removeFromCart = (index) => {
@@ -1052,10 +1447,10 @@ window.renderCart = () => {
 };
 
 window.checkout = async () => {
-    if (cart.length === 0) return alert('Cart is empty.');
+    if (cart.length === 0) return showToast('Cart is empty.', 'info');
     
     const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) return alert('Please login to checkout.');
+    if (!user) return showToast('Please login to checkout.', 'info');
     
     // Open Payment Modal instead of direct confirm
     window.toggleCart(); // Close cart modal
@@ -1074,7 +1469,7 @@ window.handlePaymentSubmit = async (e) => {
     const phone = document.getElementById('payPhone').value;
     const btn = e.target.querySelector('button');
 
-    if (!phone) return alert('Please enter a valid phone number');
+    if (!phone) return showToast('Please enter a valid phone number', 'error');
 
     // Simulate Payment Processing
     btn.innerText = 'Processing Payment...';
@@ -1099,9 +1494,9 @@ window.handlePaymentSubmit = async (e) => {
     const { error } = await supabaseClient.from('orders').insert(orders);
 
     if (error) {
-        alert('Payment successful but order creation failed: ' + error.message);
+        showToast('Payment successful but order creation failed.', 'error');
     } else {
-        alert(`Payment Successful via ${network}! Order placed.`);
+        showToast(`Payment Successful via ${network}!`, 'success');
         cart = [];
         localStorage.setItem('sme_cart', JSON.stringify(cart));
         updateCartCount();
@@ -1126,7 +1521,7 @@ window.toggleProductStatus = async (productId, currentStatus) => {
     const newStatus = currentStatus === 'sold_out' ? 'available' : 'sold_out';
     const { error } = await supabaseClient.from('products').update({ status: newStatus }).eq('id', productId);
     
-    if (error) alert('Error updating status: ' + error.message);
+    if (error) showToast('Error updating status: ' + error.message, 'error');
     else {
         loadSellerProducts(); // Refresh seller dashboard
     }
@@ -1139,7 +1534,7 @@ window.deleteMessage = async (id) => {
     
     const { error } = await supabaseClient.from('messages').delete().eq('id', id);
 
-    if (error) alert('Error deleting message: ' + error.message);
+    if (error) showToast('Error deleting message: ' + error.message, 'error');
     else {
         loadMessages();
         checkUnreadMessages();
@@ -1249,6 +1644,7 @@ async function loadAdminBusinessDetails() {
         if(document.getElementById('adminBizName')) document.getElementById('adminBizName').value = profile.business_name || '';
         if(document.getElementById('adminBizType')) document.getElementById('adminBizType').value = profile.business_type || '';
         if(document.getElementById('adminLocation')) document.getElementById('adminLocation').value = profile.location || '';
+        if(document.getElementById('adminDesc')) document.getElementById('adminDesc').value = profile.description || '';
     }
 }
 
@@ -1260,18 +1656,38 @@ if (adminBusinessForm) {
         const businessType = document.getElementById('adminBizType').value;
         const location = document.getElementById('adminLocation').value;
 
+        const avatarFile = document.getElementById('adminAvatar').files[0];
+        const description = document.getElementById('adminDesc').value;
+
         const { data: { user } } = await supabaseClient.auth.getUser();
+
+        // Upload Avatar if changed
+        let avatarUrl = undefined;
+        if (avatarFile) {
+             const fileExt = avatarFile.name.split('.').pop();
+             const fileName = `${user.id}/avatar_${Date.now()}.${fileExt}`;
+             const { error: avError } = await supabaseClient.storage.from('avatars').upload(fileName, avatarFile);
+             if (!avError) {
+                 const { data: urlData } = supabaseClient.storage.from('avatars').getPublicUrl(fileName);
+                 avatarUrl = urlData.publicUrl;
+             }
+        }
         
         // Admin is implicitly verified
-        const { error } = await supabaseClient.from('profiles').update({
+        const updates = {
             business_name: businessName,
             business_type: businessType,
             location: location,
             verified: true 
-        }).eq('id', user.id);
+        };
+        
+        if (avatarUrl) updates.avatar_url = avatarUrl;
+        if (description !== undefined) updates.description = description;
 
-        if (error) alert('Error updating business details: ' + error.message);
-        else alert('Business details updated successfully!');
+        const { error } = await supabaseClient.from('profiles').update(updates).eq('id', user.id);
+
+        if (error) showToast('Error updating details: ' + error.message, 'error');
+        else showToast('Business details updated successfully!', 'success');
     });
 }
 
@@ -1367,7 +1783,7 @@ async function loadPublicProducts() {
     // Join with profiles to get Business Name
     const { data: products, error } = await supabaseClient
         .from('products')
-        .select('*, profiles(business_name, business_type)')
+        .select('*, profiles(business_name, business_type, avatar_url)')
         .order('created_at', { ascending: false });
 
     if (error) {
@@ -1383,6 +1799,7 @@ async function loadPublicProducts() {
     container.innerHTML = products.map(product => {
         const isSoldOut = product.status === 'sold_out';
         const businessName = (product.profiles && product.profiles.business_name) ? product.profiles.business_name : 'Verified Seller';
+        const sellerAvatar = (product.profiles && product.profiles.avatar_url) ? product.profiles.avatar_url : null;
         const isPriceNumeric = !isNaN(parseFloat(product.price));
         
         return `
@@ -1400,7 +1817,10 @@ async function loadPublicProducts() {
                 <h3 style="font-size: 16px; margin: 0 0 4px 0; color: var(--text-color); font-weight: 600; line-height: 1.4; height: 44px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
                     ${product.name}
                 </h3>
-                <div style="font-size: 12px; color: #aaa; margin-bottom: 8px;">Sold by <span style="color: #1e90ff;">${businessName}</span></div>
+                <div style="font-size: 12px; color: #aaa; margin-bottom: 8px; display:flex; align-items:center; gap:5px;">
+                    ${sellerAvatar ? `<img src="${sellerAvatar}" style="width:20px; height:20px; border-radius:50%; object-fit:cover;">` : '<i class="fas fa-store" style="font-size:10px;"></i>'}
+                    <span>Sold by <button onclick="viewBusinessProfile('${product.seller_id}')" style="background:none; border:none; color: #1e90ff; cursor:pointer; padding:0; font-size:inherit; font-weight:inherit; text-decoration:underline;">${businessName}</button></span>
+                </div>
                 
                 <div style="display: flex; align-items: baseline; gap: 5px; margin-bottom: 10px;">
                     <span style="font-size: 12px; color: #fff;">K</span>
@@ -1553,7 +1973,7 @@ document.addEventListener('click', async (e) => {
             statusSpan.className = 'status cancelled';
             statusSpan.innerText = 'Cancelled';
             e.target.remove(); // Remove the cancel button
-            alert('Order cancelled successfully.');
+            showToast('Order cancelled successfully.', 'success');
         }
     }
 });
@@ -1568,7 +1988,7 @@ if (profileSettingsForm) {
         
         try {
             const { data: { user } } = await supabaseClient.auth.getUser();
-            if (!user) return alert("You are not logged in.");
+            if (!user) return showToast("You are not logged in.", 'error');
 
             // 1. Update Password if provided
             if (newPass) {
@@ -1584,10 +2004,10 @@ if (profileSettingsForm) {
 
             await supabaseClient.from('profiles').update({ full_name: newName }).eq('id', user.id);
 
-            alert('Profile updated successfully!');
+            showToast('Profile updated successfully!', 'success');
             document.getElementById('updatePass').value = ''; // Clear password field
         } catch (error) {
-            alert('Error updating profile: ' + error.message);
+            showToast('Error updating profile: ' + error.message, 'error');
         }
     });
 }
@@ -1678,6 +2098,32 @@ async function syncUserProfile() {
     }
 }
 
+// Load User Name for Dashboard Header
+async function loadUserNameDisplay() {
+    const nameSpan = document.getElementById('user-name-display');
+    if (!nameSpan) return;
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) return;
+    
+    let displayName = "User";
+
+    // 1. Try Metadata first (fastest)
+    if (user.user_metadata && user.user_metadata.full_name) {
+        displayName = user.user_metadata.full_name;
+    } else if (user.email) {
+        displayName = user.email.split('@')[0];
+    }
+
+    // 2. Try Profile (most accurate if updated)
+    const { data: profile } = await supabaseClient.from('profiles').select('full_name').eq('id', user.id).single();
+    if (profile && profile.full_name) {
+        displayName = profile.full_name;
+    }
+
+    nameSpan.innerText = displayName;
+}
+
 // Calculate and Display Customer Stats
 async function loadCustomerStats() {
     const { data: { user } } = await supabaseClient.auth.getUser();
@@ -1735,6 +2181,7 @@ async function checkDashboardSession() {
     } else {
         // Ensure profile exists for the current user
         await syncUserProfile();
+        loadUserNameDisplay(); // Load the dynamic name
 
         const role = session.user.user_metadata.role || 'customer';
         const currentPath = window.location.pathname;
@@ -1746,9 +2193,27 @@ async function checkDashboardSession() {
         }
         
         if (role === 'seller') {
-            loadSellerProducts();
-            loadSellerDashboardStats();
-            loadSellerPurchases(); // Load purchases tab data
+            // CHECK VERIFICATION STATUS
+            const { data: profile } = await supabaseClient.from('profiles').select('verified').eq('id', session.user.id).single();
+            
+            if (profile && !profile.verified) {
+                // Overwrite main content with Pending Message
+                const mainContent = document.querySelector('.main-content');
+                mainContent.innerHTML = `
+                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:80vh; text-align:center;">
+                        <i class="fas fa-hourglass-half" style="font-size: 60px; color: #ffc107; margin-bottom: 20px;"></i>
+                        <h2 style="color: var(--text-color);">Account Under Review</h2>
+                        <p style="color: var(--text-muted); max-width: 500px; margin: 10px 0 20px;">Thank you for registering. Your business documents are currently being processed by our admin team. You will receive full access once your business is verified.</p>
+                        <button class="btn-primary" onclick="window.location.reload()">Check Status</button>
+                        <button class="btn-icon" onclick="supabaseClient.auth.signOut().then(() => window.location.href='index.html')" style="margin-top:20px; font-size:14px; color:#ff4757;">Logout</button>
+                    </div>
+                `;
+            } else {
+                loadSellerProducts();
+                loadSellerDashboardStats();
+                loadSellerPurchases(); 
+                loadSellerOrders(); // Load orders for seller to manage
+            }
         }
         
         if (currentPath.includes('dashboard-customer')) {
@@ -1800,14 +2265,17 @@ async function loadCustomerOrders() {
         return;
     }
 
+    // Define status steps for tracking logic
+    const statusMap = { 'Paid': 1, 'Processing': 2, 'Shipped': 3, 'Delivered': 4 };
+
     container.innerHTML = orders.map(order => `
         <tr>
             <td>#${order.id.slice(0,8)}</td>
             <td>${order.product_name}</td>
             <td>${new Date(order.created_at).toLocaleDateString()}</td>
-            <td><span class="status pending">${order.status}</span></td>
+            <td><span class="status ${order.status === 'Delivered' ? 'completed' : (order.status === 'Cancelled' ? 'cancelled' : 'pending')}">${order.status}</span></td>
             <td>K${order.price}</td>
-            <td><button class="btn-primary" style="padding: 5px 10px; font-size: 12px; background: #555;">Details</button></td>
+            <td><button onclick="trackOrder('${order.id}', '${order.status}')" class="btn-primary" style="padding: 5px 10px; font-size: 12px; background: var(--primary-color);">Track</button></td>
         </tr>
     `).join('');
 }
@@ -1830,8 +2298,9 @@ async function initializeHomePage() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    handleAuthUI();
+document.addEventListener('DOMContentLoaded', async () => { // Make async to await auth check
+    await handleAuthUI(); // Ensure nav is updated before other scripts run
+
     if (window.location.pathname.includes('dashboard')) {
         checkDashboardSession();
     }
@@ -1903,5 +2372,46 @@ document.addEventListener('DOMContentLoaded', () => {
         
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         document.body.insertAdjacentHTML('beforeend', paymentModalHTML);
+
+        // Business Profile Modal
+        const bizModalHTML = `
+        <div id="businessProfileModal" class="modal">
+            <div class="modal-content" style="max-width: 600px; padding:0; overflow:hidden;">
+                <span class="close-modal" onclick="document.getElementById('businessProfileModal').classList.remove('active')" style="position:absolute; right:15px; top:15px; z-index:10; color:white; text-shadow:0 0 5px rgba(0,0,0,0.5);">&times;</span>
+                <div id="bizProfileContent" style="max-height:80vh; overflow-y:auto;"></div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', bizModalHTML);
+    }
+
+    // === MOBILE NAVBAR TOGGLE (PUBLIC PAGES) ===
+    const header = document.querySelector('header');
+    const nav = document.querySelector('nav');
+    // Ensure we are on a public page (has header/nav) but NOT on a dashboard (which has .sidebar)
+    const isDashboard = document.querySelector('.sidebar');
+
+    if (header && nav && !isDashboard) {
+        // If button exists (added via HTML), hook listener. If not, create it.
+        let toggleBtn = document.querySelector('.mobile-nav-toggle');
+        if (!document.querySelector('.mobile-nav-toggle')) {
+            toggleBtn = document.createElement('button');
+            toggleBtn.className = 'mobile-nav-toggle';
+            toggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
+            toggleBtn.setAttribute('aria-label', 'Toggle Navigation');
+            // Insert button into header before the nav
+            header.insertBefore(toggleBtn, nav);
+        }
+
+        toggleBtn.addEventListener('click', () => {
+            nav.classList.toggle('active');
+            const icon = toggleBtn.querySelector('i');
+            if (nav.classList.contains('active')) {
+                icon.classList.remove('fa-bars');
+                icon.classList.add('fa-times');
+            } else {
+                icon.classList.remove('fa-times');
+                icon.classList.add('fa-bars');
+            }
+        });
     }
 });

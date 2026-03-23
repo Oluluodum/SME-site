@@ -10,7 +10,7 @@
 <body>
 
   <header>
-    <h1>SME<span id="admin-trigger" style="cursor: default;"> </span>Connect</h1>
+    <h1>SME Connect</h1>
     <nav>
       <ul>
         <li><a href="index.html">Home</a></li>
@@ -29,6 +29,11 @@
         <div class="input-group">
           <label for="fullName">Full Name</label>
           <input type="text" id="fullName" required placeholder="Enter your full name">
+        </div>
+
+        <div class="input-group">
+          <label for="profilePic">Profile Picture (Optional)</label>
+          <input type="file" id="profilePic" accept="image/*" style="width: 100%; padding: 10px; background: var(--bg-light); color: var(--text-color); border-radius: 8px;">
         </div>
 
         <!-- Seller Specific Fields (Hidden by default) -->
@@ -53,6 +58,15 @@
           <div class="input-group">
             <label for="location">Location / Address</label>
             <input type="text" id="location" placeholder="City, Province (e.g., Lusaka)">
+          </div>
+          <div class="input-group">
+            <label for="businessDocs">Business Documents (PDF/Image)</label>
+            <input type="file" id="businessDocs" accept=".pdf,.jpg,.jpeg,.png" style="width: 100%; padding: 10px; background: var(--bg-light); color: var(--text-color); border-radius: 8px;">
+            <small style="color: #888;">Upload Business License or ID for verification.</small>
+          </div>
+          <div class="input-group">
+            <label for="businessDesc">Business Description (Optional)</label>
+            <textarea id="businessDesc" placeholder="Tell customers about your business..." style="width: 100%; padding: 12px; background: var(--bg-light); color: var(--text-color); border-radius: 8px; border:none; resize: vertical; min-height: 80px;"></textarea>
           </div>
         </div>
 

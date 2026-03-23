@@ -10,7 +10,7 @@
   --text-muted: #bbb;
   --shadow: 0 4px 6px rgba(0,0,0,0.3);
   --shadow-lg: 0 10px 15px rgba(0,0,0,0.5);
-  --header-bg: #111;
+  --header-bg: rgba(17, 17, 17, 0.85); /* Semi-transparent for glass effect */
   --transition: all 0.3s ease;
 }
 
@@ -23,7 +23,7 @@ body.light-mode {
   --text-muted: #666;
   --shadow: 0 4px 6px rgba(0,0,0,0.1);
   --shadow-lg: 0 10px 15px rgba(0,0,0,0.15);
-  --header-bg: #ffffff;
+  --header-bg: rgba(255, 255, 255, 0.9);
 }
 
 * {
@@ -37,6 +37,7 @@ body {
   background-color: var(--bg-dark);
   color: var(--text-color);
   line-height: 1.6;
+  overflow-x: hidden; /* Prevents horizontal shaking/scrolling */
 }
 
 /* === HEADER & NAVIGATION === */
@@ -46,10 +47,13 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
   position: sticky;
   top: 0;
   z-index: 1000;
   box-shadow: var(--shadow);
+  backdrop-filter: blur(10px); /* Professional Glass Effect */
+  border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
 header h1 {
@@ -78,6 +82,45 @@ nav a.active {
   color: #1e90ff;
 }
 
+/* Mobile Nav Toggle (Default Hidden) */
+.mobile-nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-color);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+/* === TOAST NOTIFICATIONS (Professional Alerts) === */
+.toast-container {
+  position: fixed;
+  top: 80px; /* Below header */
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--bg-card);
+  color: var(--text-color);
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  border-left: 4px solid var(--primary-color);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 280px;
+  animation: slideInRight 0.3s ease forwards;
+  pointer-events: auto;
+}
+.toast.success { border-left-color: #28a745; }
+.toast.error { border-left-color: #ff4757; }
+
 /* Theme Toggle Button */
 .btn-icon {
   background: none;
@@ -86,6 +129,11 @@ nav a.active {
   font-size: 1.2rem;
   cursor: pointer;
   padding: 5px;
+}
+
+/* Cart Button Specifics */
+.cart-button {
+  position: relative; /* Anchor for the badge */
 }
 
 /* === BUTTONS === */
@@ -105,11 +153,41 @@ nav a.active {
 .btn-primary:hover {
   transform: scale(1.05);
   background: linear-gradient(90deg, var(--secondary-color), var(--primary-color));
+  box-shadow: 0 0 15px rgba(30, 144, 255, 0.4);
+}
+
+/* Cart Badge Style */
+.cart-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(40%, -40%);
+  background: var(--accent-color);
+  color: white;
+  border-radius: 50%;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: bold;
+  display: none; /* JS will show this */
+}
+
+/* Specific badge style for dashboard header */
+.dashboard-header .cart-badge {
+    background: #fff;
+    color: var(--primary-color);
+}
+
+/* Loading State for Buttons */
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  filter: grayscale(0.5);
 }
 
 /* === HERO SECTION (HOME PAGE) === */
 .hero {
-  height: 90vh;
+  min-height: 90vh; /* changed from height to min-height to prevent jitter on mobile resize */
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -411,6 +489,14 @@ nav a.active {
   box-shadow: var(--shadow-lg);
 }
 
+/* Login Page Footer */
+.login-container + footer {
+  margin-top: 0;
+  background: transparent;
+  border: none;
+  padding-top: 0;
+}
+
 .form-box h2 {
   font-size: 30px;
   color: #1e90ff;
@@ -578,11 +664,37 @@ footer {
 /* === RESPONSIVE DESIGN === */
 @media (max-width: 768px) {
   header {
-    flex-direction: column;
-    text-align: center;
-    gap: 15px;
+    padding: 15px 20px; 
   }
 
+  .mobile-nav-toggle {
+    display: block; /* Show hamburger button */
+  }
+
+  nav {
+    width: 100%;
+    display: none; /* Hide menu by default */
+    margin-top: 15px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+
+  nav.active {
+    display: block; /* Show when toggled */
+  }
+
+  nav ul {
+    flex-direction: column;
+    gap: 15px;
+    padding: 10px 0;
+  }
+
+  /* Fix Nav Link click area on mobile */
+  nav ul li {
+    width: 100%;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  
   .sellers-container, .contact-section {
     padding: 40px 20px;
   }
@@ -609,6 +721,11 @@ footer {
   .form-box .btn-primary {
     font-size: 16px;
   }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(50px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 /* === ABOUT PAGE STYLES (Migrated) === */
@@ -947,8 +1064,19 @@ footer {
     flex-direction: row; /* Keep row for button and title */
   }
   
+  .header-left {
+    min-width: 0; /* Allows flex child to shrink below content size */
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+  
   .dashboard-header h1 {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Adds "..." if name is too long */
+    margin-right: 10px;
   }
 
   /* Mobile Menu Button */
@@ -1090,6 +1218,94 @@ footer {
   background: #333;
   color: #ddd;
   border-bottom-left-radius: 2px;
+}
+
+/* Reply Styles */
+.reply-btn {
+  display: none;
+  margin-right: 8px;
+  color: #bbb;
+  cursor: pointer;
+  font-size: 10px;
+  transition: color 0.2s;
+}
+
+.message-bubble:hover .reply-btn {
+  display: inline-block;
+}
+
+.reply-btn:hover {
+  color: var(--primary-color);
+}
+
+.quoted-message {
+  background: rgba(0,0,0,0.2);
+  border-left: 3px solid var(--primary-color);
+  padding: 5px 8px;
+  border-radius: 4px;
+  margin-bottom: 5px;
+  font-size: 0.85em;
+  color: #ccc;
+  display: flex;
+  flex-direction: column;
+}
+
+.reply-preview-bar {
+  background: #2a2a2a;
+  padding: 8px 15px;
+  border-left: 4px solid var(--primary-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #ddd;
+  display: none; /* Hidden by default */
+}
+
+/* Delete Button in Chat */
+.message-bubble .delete-btn {
+  display: none;
+  margin-left: 8px;
+  color: #ff4757;
+  cursor: pointer;
+  font-size: 10px;
+  transition: color 0.2s;
+}
+
+.message-bubble:hover .delete-btn {
+  display: inline-block;
+}
+
+.message-bubble .delete-btn:hover {
+  color: #ff0000;
+}
+
+/* Typing Indicator */
+.typing-indicator {
+  font-style: italic;
+  color: #888;
+  font-size: 12px;
+  margin-bottom: 5px;
+  padding: 5px 15px;
+  display: none; /* Hidden by default */
+}
+
+.typing-dots span {
+  animation: typingBounce 1.4s infinite ease-in-out both;
+  height: 4px;
+  width: 4px;
+  background: #888;
+  border-radius: 50%;
+  display: inline-block;
+  margin: 0 1px;
+}
+
+.typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
 }
 
 .chat-input-area {

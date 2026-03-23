@@ -10,7 +10,8 @@
 <body>
 
   <header>
-    <h1>SME<span id="admin-trigger" style="cursor: default;"> </span>Connect</h1>
+    <h1>SME Connect</h1>
+    <button class="mobile-nav-toggle" aria-label="Toggle Navigation"><i class="fas fa-bars"></i></button>
     <nav>
       <ul>
         <li><a href="index.html">Home</a></li>
@@ -39,7 +40,7 @@
         <div class="checkbox">
           <input type="checkbox" id="remember">
           <label for="remember">Remember me</label>
-          <a href="#" style="margin-left: auto;">Forgot Password?</a>
+          <a href="#" id="forgotPasswordLink" style="margin-left: auto;">Forgot Password?</a>
         </div>
 
         <button type="submit" class="btn-primary">Login</button>
@@ -50,6 +51,12 @@
       </form>
     </div>
   </div>
+
+  <footer>
+    <p>&copy; 2025 SME Connect. All rights reserved.</p>
+    <p style="font-size: 12px; margin-top: 10px;"><a href="#" id="admin-link" style="color: #555; text-decoration: none;">Admin Access</a></p>
+  </footer>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js"></script>
 </body>

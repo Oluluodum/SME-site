@@ -34,7 +34,7 @@
     <div class="dashboard-header">
       <div class="header-left">
         <button id="mobile-menu-btn" class="mobile-menu-btn"><i class="fas fa-bars"></i></button>
-        <h1>Platform Overview</h1>
+        <h1>Welcome, <span id="user-name-display">Admin</span>!</h1>
       </div>
       <div class="header-right">
         <button id="theme-toggle" class="btn-icon" aria-label="Toggle Theme"><i class="fas fa-sun"></i></button>
@@ -91,6 +91,7 @@
                 <th>Business Name</th>
                 <th>Owner</th>
                 <th>Email</th>
+                <th>Documents</th>
                 <th>Action</th>
                 </tr>
             </thead>
@@ -138,6 +139,14 @@
                 <div class="input-group">
                     <label for="adminLocation">Location</label>
                     <input type="text" id="adminLocation" placeholder="City, Province">
+                </div>
+                <div class="input-group">
+                    <label for="adminAvatar">Profile Picture</label>
+                    <input type="file" id="adminAvatar" accept="image/*" style="width: 100%; padding: 10px; background: #222; color: #fff; border: 1px solid #444; border-radius: 8px;">
+                </div>
+                <div class="input-group">
+                    <label for="adminDesc">Business Description</label>
+                    <textarea id="adminDesc" placeholder="Describe your business..." style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: #222; color: #fff; outline: none; min-height: 80px; resize: vertical;"></textarea>
                 </div>
                 <button type="submit" class="btn-primary">Update Business Details</button>
             </form>
