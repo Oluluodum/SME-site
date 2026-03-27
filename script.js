@@ -183,6 +183,17 @@ if (addProductForm) {
     });
 }
 
+// === GOOGLE OAUTH LOGIC ===
+window.loginWithGoogle = async () => {
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: window.location.origin + '/index.html' // Redirect home, logic will handle dashboard routing
+        }
+    });
+    if (error) showToast("Google Login Error: " + error.message, 'error');
+};
+
 // === AUTHENTICATION LOGIC ===
 
 // 1. Handle Registration
@@ -2014,41 +2025,56 @@ if (profileSettingsForm) {
 
 async function handleAuthUI() {
     const { data: { session } } = await supabaseClient.auth.getSession();
-    const navUl = document.querySelector('header nav ul');
-    if (!navUl) return;
+    const header = document.querySelector('header');
+    if (!header) return;
 
-    const signupLi = navUl.querySelector('a[href="signup.html"], button[onclick*="signup.html"]')?.parentElement;
-    const loginLi = navUl.querySelector('a[href="login.html"], button[onclick*="login.html"]')?.parentElement;
+    const signupLinks = header.querySelectorAll('a[href="signup.html"], button[onclick*="signup.html"]');
+    const loginLinks = header.querySelectorAll('a[href="login.html"], button[onclick*="login.html"]');
 
-    // Remove any previously added dynamic links to prevent duplication
-    navUl.querySelector('#dashboard-link')?.remove();
-    navUl.querySelector('#logout-link')?.remove();
+    // Remove existing dynamic links
+    header.querySelectorAll('.dynamic-auth-link').forEach(el => el.remove());
 
     if (session) {
-        if (signupLi) signupLi.style.display = 'none';
-        if (loginLi) loginLi.style.display = 'none';
+        signupLinks.forEach(link => link.parentElement.style.display = 'none');
+        loginLinks.forEach(link => link.parentElement.style.display = 'none');
 
         const role = session.user.user_metadata.role || 'customer';
         let dashboardUrl = 'dashboard-customer.html';
         if (role === 'seller') dashboardUrl = 'dashboard-seller.html';
         if (role === 'admin') dashboardUrl = 'dashboard-admin.html';
 
-        const dashboardLi = document.createElement('li');
-        dashboardLi.id = 'dashboard-link';
-        dashboardLi.innerHTML = `<a href="${dashboardUrl}" class="btn-primary">Dashboard</a>`;
-        navUl.appendChild(dashboardLi);
+        // Add to desktop nav
+        const navUl = header.querySelector('nav ul');
+        if (navUl) {
+            const dashboardLi = document.createElement('li');
+            dashboardLi.className = 'dynamic-auth-link';
+            dashboardLi.innerHTML = `<a href="${dashboardUrl}" class="btn-primary">Dashboard</a>`;
+            navUl.appendChild(dashboardLi);
 
-        const logoutLi = document.createElement('li');
-        logoutLi.id = 'logout-link';
-        logoutLi.innerHTML = `<button class="btn-primary" style="background-color: var(--accent-color);">Logout</button>`;
-        logoutLi.querySelector('button').addEventListener('click', async () => {
-            await supabaseClient.auth.signOut();
-            window.location.href = 'index.html';
-        });
-        navUl.appendChild(logoutLi);
+            const logoutLi = document.createElement('li');
+            logoutLi.className = 'dynamic-auth-link';
+            logoutLi.innerHTML = `<button class="btn-primary" style="background-color: var(--accent-color);">Logout</button>`;
+            logoutLi.querySelector('button').addEventListener('click', async () => {
+                await supabaseClient.auth.signOut();
+                window.location.href = 'index.html';
+            });
+            navUl.appendChild(logoutLi);
+        }
+        
+        // Update mobile-visible button
+        const mobileAuthContainer = header.querySelector('.header-actions .auth-mobile');
+        if (mobileAuthContainer) {
+            mobileAuthContainer.innerHTML = `<a href="${dashboardUrl}" class="btn-primary btn-header-mobile">Dash</a>`;
+        }
+
     } else {
-        if (signupLi) signupLi.style.display = '';
-        if (loginLi) loginLi.style.display = '';
+        signupLinks.forEach(link => link.parentElement.style.display = '');
+        loginLinks.forEach(link => link.parentElement.style.display = '');
+        
+        const mobileAuthContainer = header.querySelector('.header-actions .auth-mobile');
+        if (mobileAuthContainer) {
+            mobileAuthContainer.innerHTML = `<a href="login.html" class="btn-primary btn-header-mobile">Login</a>`;
+        }
     }
 }
 
@@ -2087,11 +2113,12 @@ async function syncUserProfile() {
         const profileData = {
             id: user.id,
             email: user.email,
-            full_name: metadata.full_name || 'User',
+            full_name: metadata.full_name || metadata.name || 'User',
             role: metadata.role || 'customer',
             business_name: metadata.business_name || null,
             business_type: metadata.business_type || null,
-            verified: metadata.role === 'seller' ? false : true
+            verified: metadata.role === 'seller' ? false : true,
+            avatar_url: metadata.avatar_url || metadata.picture || null
         };
         
         await supabaseClient.from('profiles').insert([profileData]);

@@ -47,7 +47,6 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -60,6 +59,16 @@ header h1 {
   color: #ff4757;
   font-size: 24px;
   font-weight: 700;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.auth-mobile {
+  display: none;
 }
 
 nav ul {
@@ -183,6 +192,44 @@ nav a.active {
   cursor: not-allowed;
   transform: none;
   filter: grayscale(0.5);
+}
+
+.btn-google {
+  background: white;
+  color: #444;
+  border: 1px solid #ddd;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 15px;
+  transition: var(--transition);
+}
+
+.btn-google:hover {
+  background: #f1f1f1;
+  box-shadow: var(--shadow);
+}
+
+.divider {
+  margin: 20px 0;
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.divider::before, .divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #333;
+  margin: 0 10px;
 }
 
 /* === HERO SECTION (HOME PAGE) === */
@@ -644,10 +691,45 @@ nav a.active {
 /* === FOOTER === */
 footer {
   background: var(--header-bg);
-  padding: 30px 20px;
+  padding: 60px 20px 30px;
   text-align: center;
   margin-top: 50px;
   border-top: 1px solid var(--bg-light);
+}
+
+.footer-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.footer-section h3 {
+  color: var(--primary-color);
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+}
+
+.footer-contact-form .input-group {
+  margin-bottom: 15px;
+}
+
+.footer-contact-form input, .footer-contact-form textarea {
+  width: 100%;
+  padding: 10px;
+  background: var(--bg-light);
+  border: 1px solid #333;
+  color: var(--text-color);
+  border-radius: 6px;
+}
+
+.footer-bottom {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  text-align: center;
 }
 
 .social-icons a {
@@ -763,7 +845,7 @@ footer {
 
 .content-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 3rem;
 }
 
@@ -845,7 +927,8 @@ footer {
   padding: 40px;
   border-radius: 15px;
   text-align: center;
-  width: 350px;
+  width: 100%;
+  max-width: 350px;
   border: 1px solid #333;
   transition: var(--transition);
 }
