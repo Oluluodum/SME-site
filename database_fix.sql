@@ -89,6 +89,24 @@ create policy "Users can view their own orders" on orders for select using (auth
 create policy "Sellers can view orders for them" on orders for select using (auth.uid() = seller_id);
 create policy "Sellers can update order status" on orders for update using (auth.uid() = seller_id);
 
+-- 5. REVIEWS TABLE
+create table if not exists public.reviews (
+  id uuid default uuid_generate_v4() primary key,
+  product_id uuid references public.products(id) on delete cascade,
+  buyer_id uuid references auth.users(id),
+  buyer_name text,
+  rating integer check (rating >= 1 and rating <= 5),
+  comment text,
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+alter table public.reviews enable row level security;
+
+create policy "Reviews are viewable by everyone." on reviews for select using (true);
+create policy "Authenticated users can post reviews." on reviews for insert with check (auth.role() = 'authenticated');
+
+-- Enable Realtime for Reviews
+alter publication supabase_realtime add table reviews;
+
 -- 5. STORAGE BUCKETS SETUP
 -- Product Images
 insert into storage.buckets (id, name, public) values ('product-images', 'product-images', true) on conflict (id) do nothing;

@@ -1755,11 +1755,25 @@ async function loadSellerDashboardStats() {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) return;
 
-    // 1. Stats (Simulated for now as we don't have Orders/Revenue tables)
-    // Update UI with defaults or derived data
-    if(document.getElementById('seller-revenue')) document.getElementById('seller-revenue').innerText = 'K0.00';
-    if(document.getElementById('seller-orders-count')) document.getElementById('seller-orders-count').innerText = '0'; 
-    if(document.getElementById('seller-rating')) document.getElementById('seller-rating').innerText = '5.0';
+    // 1. Fetch real Order Stats
+    const { data: orders, error: orderError } = await supabaseClient
+        .from('orders')
+        .select('*')
+        .eq('seller_id', user.id);
+
+    if (!orderError && orders) {
+        const totalRevenue = orders
+            .filter(o => o.status !== 'Cancelled')
+            .reduce((sum, o) => sum + (parseFloat(o.price) || 0), 0);
+        
+        if(document.getElementById('seller-revenue')) 
+            document.getElementById('seller-revenue').innerText = 'K' + totalRevenue.toLocaleString();
+        if(document.getElementById('seller-orders-count')) 
+            document.getElementById('seller-orders-count').innerText = orders.length;
+
+        // Render the Analytics Chart
+        renderSalesChart(orders);
+    }
 
     // 2. Recent Products (Replacing Low Stock)
     const recentTable = document.getElementById('recent-products-table');
@@ -1784,6 +1798,58 @@ async function loadSellerDashboardStats() {
             `).join('');
         }
     }
+}
+
+function renderSalesChart(orders) {
+    const ctx = document.getElementById('salesChart');
+    if (!ctx) return;
+
+    // Group data by last 6 months
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const salesByMonth = {};
+    
+    // Initialize last 6 months with 0
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        salesByMonth[monthNames[d.getMonth()]] = 0;
+    }
+
+    // Aggregate order prices
+    orders.forEach(order => {
+        const date = new Date(order.created_at);
+        const month = monthNames[date.getMonth()];
+        if (salesByMonth.hasOwnProperty(month)) {
+            salesByMonth[month] += (parseFloat(order.price) || 0);
+        }
+    });
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: Object.keys(salesByMonth),
+            datasets: [{
+                label: 'Monthly Revenue (ZMW)',
+                data: Object.values(salesByMonth),
+                borderColor: '#1e90ff',
+                backgroundColor: 'rgba(30, 144, 255, 0.1)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
 }
 
 // 2. Load All Products (Public Marketplace)
@@ -2271,6 +2337,15 @@ async function checkDashboardSession() {
             if(currentPath.includes('admin') && document.getElementById('messages-section')?.style.display === 'block') loadMessages();
         }
     }
+}
+
+// === PWA SERVICE WORKER REGISTRATION ===
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Service Worker registered successfully.'))
+            .catch(err => console.log('Service Worker registration failed:', err));
+    });
 }
 
 // Load real orders for customer dashboard

@@ -7,6 +7,11 @@
   <link rel="stylesheet" href="styles.css"> 
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e90ff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
 </head>
 <body>
 
@@ -136,6 +141,15 @@
                  <p id="detailSellerDesc" style="font-size: 0.9rem; font-style: italic; color: #ccc;"></p>
             </div>
         </div>
+
+        <!-- Review Section -->
+        <div style="margin-top: 25px; border-top: 1px solid #333; padding-top: 20px;">
+            <h4 style="margin-bottom: 15px;">Customer Reviews</h4>
+            <div id="reviewsContainer" style="margin-bottom: 15px; max-height: 200px; overflow-y: auto;">
+                <p style="color: #666; font-size: 0.9rem;">No reviews yet.</p>
+            </div>
+            <button id="addReviewBtn" class="btn-outline" style="font-size: 13px; padding: 5px 10px; width: auto;">Write a Review</button>
+        </div>
     </div>
   </div>
 </div>
@@ -157,6 +171,32 @@
         <textarea id="contactMessage" rows="4" required placeholder="Hi, is this item still available?" style="width: 100%; padding: 10px; background: #222; color: #fff; border: 1px solid #444; border-radius: 8px;"></textarea>
       </div>
       <button type="submit" class="btn-primary" style="width: 100%;">Send Message</button>
+    </form>
+  </div>
+</div>
+
+<!-- Review Modal -->
+<div id="reviewModal" class="modal">
+  <div class="modal-content" style="max-width: 400px;">
+    <span class="close-modal" onclick="document.getElementById('reviewModal').classList.remove('active')">&times;</span>
+    <h2>Rate Product</h2>
+    <form id="submitReviewForm">
+      <input type="hidden" id="reviewProductId">
+      <div class="input-group">
+        <label>Rating</label>
+        <select id="reviewRating" required style="width: 100%; padding: 10px; background: #222; color: #fff; border: 1px solid #444; border-radius: 8px;">
+          <option value="5">5 Stars - Excellent</option>
+          <option value="4">4 Stars - Good</option>
+          <option value="3">3 Stars - Average</option>
+          <option value="2">2 Stars - Poor</option>
+          <option value="1">1 Star - Terrible</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Comment</label>
+        <textarea id="reviewComment" rows="3" required placeholder="What did you think of this product?" style="width: 100%; padding: 10px; background: #222; color: #fff; border: 1px solid #444; border-radius: 8px;"></textarea>
+      </div>
+      <button type="submit" class="btn-primary" style="width: 100%;">Submit Review</button>
     </form>
   </div>
 </div>
