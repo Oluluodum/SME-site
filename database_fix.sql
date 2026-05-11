@@ -23,9 +23,39 @@ create table if not exists public.profiles (
 );
 alter table public.profiles enable row level security;
 
+-- Allow anyone to see basic profile info (required for marketplace)
 create policy "Public profiles are viewable by everyone." on profiles for select using (true);
+
+-- Ensure admins have full override access using JWT metadata to avoid recursion
+create policy "Admins can do everything" on profiles for all 
+using ( (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin' );
+
 create policy "Users can insert their own profile." on profiles for insert with check (auth.uid() = id);
 create policy "Users can update own profile." on profiles for update using (auth.uid() = id);
+
+-- TRIGGER: Automatically create a profile when a new user signs up
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, email, full_name, role, business_name, business_type, location, description, verified)
+  values (
+    new.id, 
+    new.email, 
+    new.raw_user_meta_data->>'full_name', 
+    coalesce(new.raw_user_meta_data->>'role', 'customer'),
+    new.raw_user_meta_data->>'business_name',
+    new.raw_user_meta_data->>'business_type',
+    new.raw_user_meta_data->>'location',
+    new.raw_user_meta_data->>'description',
+    case when new.raw_user_meta_data->>'role' = 'seller' then false else true end
+  );
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
 
 -- 2. PRODUCTS TABLE
 create table if not exists public.products (
@@ -119,9 +149,17 @@ create policy "Users can upload chat images" on storage.objects for insert with 
 create policy "Anyone can view chat images" on storage.objects for select using ( bucket_id = 'chat-images' );
 
 -- Business Docs
-insert into storage.buckets (id, name, public) values ('business-docs', 'business-docs', true) on conflict (id) do nothing;
-create policy "Public can upload docs" on storage.objects for insert with check ( bucket_id = 'business-docs' );
-create policy "Public can view docs" on storage.objects for select using ( bucket_id = 'business-docs' );
+-- 1. Ensure the bucket is private (public = false)
+insert into storage.buckets (id, name, public) 
+values ('business-docs', 'business-docs', false) 
+on conflict (id) do update set public = false;
+
+-- 2. Allow any authenticated user to upload (so sellers can register)
+create policy "Authenticated users can upload docs" on storage.objects for insert with check ( bucket_id = 'business-docs' and auth.role() = 'authenticated' );
+
+-- 3. ONLY Admins can view or download these documents
+create policy "Only admins can view business docs" on storage.objects for select 
+using ( bucket_id = 'business-docs' and (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin' );
 
 -- Avatars
 insert into storage.buckets (id, name, public) values ('avatars', 'avatars', true) on conflict (id) do nothing;

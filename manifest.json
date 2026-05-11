@@ -2,7 +2,7 @@
   "name": "SME Connect Zambia",
   "short_name": "SME Connect",
   "description": "Connecting Small and Medium Enterprises across Zambia.",
-  "start_url": "/index.html",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#0f0f0f",
   "theme_color": "#1e90ff",

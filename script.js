@@ -60,6 +60,9 @@ if (supabaseClient) {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, payload => {
             handleRealtimeMessage(payload);
         })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, payload => {
+            if (window.location.pathname.includes('admin')) loadAdminData();
+        })
         .on('broadcast', { event: 'typing' }, payload => {
             handleTypingIndicator(payload.payload);
         })
@@ -201,9 +204,15 @@ const registerForm = document.getElementById('registerForm');
 if (registerForm) {
     // Set role based on URL parameter
     const urlParams = new URLSearchParams(window.location.search);
-    const role = urlParams.get('role') || 'customer';
-    document.getElementById('role').value = role;
-    document.getElementById('register-title').innerText = role === 'seller' ? 'Register Business' : 'Customer Registration';
+    const roleParam = urlParams.get('role');
+    const roleInput = document.getElementById('role');
+    
+    // Only override the role if a parameter is explicitly provided
+    if (roleParam && roleInput) roleInput.value = roleParam;
+    
+    const role = roleInput ? roleInput.value : 'customer';
+    const titleEl = document.getElementById('register-title');
+    if (titleEl) titleEl.innerText = role === 'seller' ? 'Merchant Registration' : 'Customer Registration';
     
     // Show seller fields if registering as a business
     if (role === 'seller') {
@@ -262,17 +271,6 @@ if (registerForm) {
             metadata.role = 'admin';
         }
 
-        // Prepare profile data (for public table)
-        const profileData = {
-            email: email,
-            full_name: fullName,
-            role: metadata.role,
-            business_name: metadata.business_name || null,
-            business_type: metadata.business_type || null,
-            description: metadata.description || null,
-            verified: metadata.role === 'seller' ? false : true // Sellers need verification
-        };
-
         try {
             const { data, error } = await supabaseClient.auth.signUp({
                 email: email,
@@ -310,11 +308,11 @@ if (registerForm) {
                 }
             }
 
-            // Create Public Profile Record
-            if (data.user) {
-                await supabaseClient.from('profiles').insert([
-                    { id: data.user.id, ...profileData, documents_url: docUrl, avatar_url: avatarUrl }
-                ]);
+            // Update the Profile Record (created by DB Trigger) with file URLs
+            if (data.user && (avatarUrl || docUrl)) {
+                await supabaseClient.from('profiles')
+                    .update({ documents_url: docUrl, avatar_url: avatarUrl })
+                    .eq('id', data.user.id);
             }
 
             showToast('Registration successful! Check email to verify.', 'success');
@@ -376,15 +374,21 @@ if (loginForm) {
 
             if (error) throw error;
 
-            // Redirect based on role stored in metadata
-            let role = data.user.user_metadata.role || 'customer';
+            // NEW: Fetch the role from the profiles table (Source of Truth)
+            const { data: profile, error: profileError } = await supabaseClient
+                .from('profiles')
+                .select('role')
+                .eq('id', data.user.id)
+                .single();
+
+            let role = profile ? profile.role : (data.user.user_metadata.role || 'customer');
             
             // Auto-promote any email starting with 'admin' if not already set
             if ((email.toLowerCase().startsWith('admin') || email.toLowerCase() === 'elinjava9@gmail.com') && role !== 'admin') {
                 const { data: updateData, error: updateError } = await supabaseClient.auth.updateUser({
                     data: { role: 'admin' }
                 });
-                if (!updateError && updateData.user) {
+                if (!updateError) {
                     role = 'admin';
                     await supabaseClient.auth.refreshSession(); // Force session refresh so dashboard accepts the new role
                 }
@@ -495,9 +499,11 @@ async function loadAdminData() {
     console.log("Loading Admin Data...");
 
     // 1. Stats
-    const { count: userCount } = await supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).neq('role', 'seller');
-    const { count: sellerCount } = await supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'seller');
-    const { count: pendingCount } = await supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'seller').eq('verified', false);
+    const { count: userCount, error: err1 } = await supabaseClient.from('profiles').select('*', { count: 'exact', head: true });
+    const { count: sellerCount, error: err2 } = await supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'seller');
+    const { count: pendingCount, error: err3 } = await supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'seller').eq('verified', false);
+
+    if (err1 || err2 || err3) console.error("Error fetching admin stats:", err1, err2, err3);
 
     if (document.getElementById('total-users-count')) document.getElementById('total-users-count').innerText = userCount || 0;
     if (document.getElementById('total-sellers-count')) document.getElementById('total-sellers-count').innerText = sellerCount || 0;
@@ -509,17 +515,26 @@ async function loadAdminData() {
         const { data: pendingSellers } = await supabaseClient.from('profiles').select('*').eq('role', 'seller').eq('verified', false);
         
         if (!pendingSellers || pendingSellers.length === 0) {
-            pendingTable.innerHTML = '<tr><td colspan="4" style="text-align:center;">No pending verifications.</td></tr>';
+            pendingTable.innerHTML = '<tr><td colspan="5" style="text-align:center;">No pending verifications.</td></tr>';
         } else {
             pendingTable.innerHTML = pendingSellers.map(seller => `
                 <tr>
                     <td>${seller.business_name || 'N/A'}</td>
                     <td>${seller.full_name}</td>
                     <td>${seller.email}</td>
-                    <td>${seller.documents_url ? `<a href="${seller.documents_url}" target="_blank" style="color:#1e90ff; text-decoration:underline;">View Docs</a>` : 'N/A'}</td>
                     <td>
-                        <button onclick="verifySeller('${seller.id}', true)" class="btn-primary" style="padding: 5px 10px; font-size: 12px; background: #28a745;">Approve</button>
-                        <button onclick="verifySeller('${seller.id}', false)" class="btn-primary" style="padding: 5px 10px; font-size: 12px; background: #dc3545;">Reject</button>
+                        ${seller.documents_url ? `
+                            <div style="display:flex; gap:15px; align-items:center;">
+                                <button onclick="viewSecureDoc('${seller.documents_url}')" title="View Document" class="btn-icon" style="color: var(--primary-color);"><i class="fas fa-eye"></i></button>
+                                <button onclick="viewSecureDoc('${seller.documents_url}', true)" title="Download Document" class="btn-icon" style="color: #28a745; border:none;"><i class="fas fa-file-download"></i></button>
+                            </div>
+                        ` : '<span style="color:#888;">N/A</span>'}
+                    </td>
+                    <td>
+                        <div style="display:flex; gap:5px;">
+                            <button onclick="verifySeller('${seller.id}', true)" class="btn-primary" style="padding: 5px 10px; font-size: 12px; background: #28a745;">Approve</button>
+                            <button onclick="verifySeller('${seller.id}', false)" class="btn-primary" style="padding: 5px 10px; font-size: 12px; background: #dc3545;">Reject</button>
+                        </div>
                     </td>
                 </tr>
             `).join('');
@@ -592,6 +607,7 @@ async function loadAllUsers() {
                 <th>Email</th>
                 <th>Role</th>
                 <th>Business</th>
+                <th>Docs</th>
                 <th>Verified</th>
                 <th>Joined</th>
             </tr>
@@ -604,6 +620,14 @@ async function loadAllUsers() {
             <td>${u.email || 'N/A'}</td>
             <td>${u.role || 'customer'}</td>
             <td>${u.business_name || '-'}</td>
+            <td>
+                ${u.documents_url ? `
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="viewSecureDoc('${u.documents_url}')" title="View" class="btn-icon" style="color:var(--primary-color);"><i class="fas fa-eye"></i></button>
+                        <button onclick="viewSecureDoc('${u.documents_url}', true)" title="Download" class="btn-icon" style="color:#28a745; border:none;"><i class="fas fa-file-download"></i></button>
+                    </div>
+                ` : '-'}
+            </td>
             <td>${u.verified ? '<span class="status completed">Yes</span>' : '<span class="status pending">No</span>'}</td>
             <td>${new Date(u.created_at).toLocaleDateString()}</td>
         </tr>
@@ -627,6 +651,33 @@ window.verifySeller = async (userId, approve) => {
             // Logic to delete or mark rejected could go here
             showToast('Seller rejected.', 'info');
         }
+    }
+};
+
+/**
+ * Generates a temporary Signed URL to view/download private business documents
+ * @param {string} fullUrl - The stored public URL from the database
+ * @param {boolean} shouldDownload - Whether to trigger a download
+ */
+window.viewSecureDoc = async (fullUrl, shouldDownload = false) => {
+    try {
+        // 1. Extract the file path from the full URL 
+        // Stored format: .../business-docs/user_id/filename.pdf
+        const pathParts = fullUrl.split('/business-docs/');
+        if (pathParts.length < 2) throw new Error("Invalid document path");
+        const filePath = pathParts[1];
+
+        // 2. Request a signed URL from Supabase (expires in 60 seconds)
+        const { data, error } = await supabaseClient.storage
+            .from('business-docs')
+            .createSignedUrl(filePath, 60, { download: shouldDownload });
+
+        if (error) throw error;
+
+        // 3. Open the temporary secure link
+        window.open(data.signedUrl, '_blank');
+    } catch (err) {
+        showToast("Access Denied: " + err.message, "error");
     }
 };
 
@@ -1750,6 +1801,75 @@ async function loadSellerProducts() {
     `}).join('');
 }
 
+// === MISSING DASHBOARD FUNCTIONS FIX ===
+async function loadSellerOrders() {
+    const container = document.getElementById('seller-orders-table');
+    if (!container) return;
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    const { data: orders, error } = await supabaseClient
+        .from('orders')
+        .select('*')
+        .eq('seller_id', user.id)
+        .order('created_at', { ascending: false });
+
+    if (error || !orders || orders.length === 0) {
+        container.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #888; padding: 20px;">No orders found.</td></tr>';
+        return;
+    }
+
+    container.innerHTML = orders.map(order => `
+        <tr>
+            <td>#${order.id.slice(0,8)}</td>
+            <td>Buyer</td>
+            <td>${order.product_name}</td>
+            <td>${new Date(order.created_at).toLocaleDateString()}</td>
+            <td><span class="status ${order.status.toLowerCase()}">${order.status}</span></td>
+            <td><button class="btn-primary" style="padding: 5px 10px; font-size: 11px;">Manage</button></td>
+        </tr>
+    `).join('');
+}
+
+async function loadSellerPurchases() {
+    const container = document.getElementById('seller-purchases-table');
+    if (!container) return;
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    const { data: orders, error } = await supabaseClient
+        .from('orders')
+        .select('*')
+        .eq('buyer_id', user.id)
+        .order('created_at', { ascending: false });
+
+    if (error || !orders || orders.length === 0) {
+        container.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #888; padding: 20px;">No purchases found.</td></tr>';
+        return;
+    }
+
+    container.innerHTML = orders.map(order => `
+        <tr>
+            <td>${order.product_name}</td>
+            <td>Merchant</td>
+            <td>${new Date(order.created_at).toLocaleDateString()}</td>
+            <td><span class="status ${order.status.toLowerCase()}">${order.status}</span></td>
+            <td><button onclick="trackOrder('${order.id}', '${order.status}')" class="btn-primary" style="padding: 5px 10px; font-size: 11px;">Track</button></td>
+        </tr>
+    `).join('');
+}
+
+window.trackOrder = (orderId, status) => {
+    const modal = document.getElementById('trackingModal');
+    if (modal) {
+        const idEl = document.getElementById('trackOrderId');
+        if (idEl) idEl.innerText = orderId.slice(0, 8);
+        const stepsEl = document.getElementById('tracking-steps');
+        if (stepsEl) {
+            stepsEl.innerHTML = `<p style="text-align:center; padding:20px;">Status: <strong>${status}</strong></p>`;
+        }
+        modal.classList.add('active');
+    }
+};
+
 // 3. Load Seller Dashboard Stats (Overview)
 async function loadSellerDashboardStats() {
     const { data: { user } } = await supabaseClient.auth.getUser();
@@ -1896,7 +2016,7 @@ async function loadPublicProducts() {
                 </h3>
                 <div style="font-size: 12px; color: #aaa; margin-bottom: 8px; display:flex; align-items:center; gap:5px;">
                     ${sellerAvatar ? `<img src="${sellerAvatar}" style="width:20px; height:20px; border-radius:50%; object-fit:cover;">` : '<i class="fas fa-store" style="font-size:10px;"></i>'}
-                    <span>Sold by <button onclick="viewBusinessProfile('${product.seller_id}')" style="background:none; border:none; color: #1e90ff; cursor:pointer; padding:0; font-size:inherit; font-weight:inherit; text-decoration:underline;">${businessName}</button></span>
+                    <span>Merchant: <button onclick="viewBusinessProfile('${product.seller_id}')" style="background:none; border:none; color: #1e90ff; cursor:pointer; padding:0; font-size:inherit; font-weight:inherit; text-decoration:underline;">${businessName}</button></span>
                 </div>
                 
                 <div style="display: flex; align-items: baseline; gap: 5px; margin-bottom: 10px;">
@@ -1910,7 +2030,7 @@ async function loadPublicProducts() {
                         <button onclick="buyNow('${product.id}')" style="background: #fa8900; color: #111; border: 1px solid #ca6f01; border-radius: 20px; font-weight: 600; cursor: pointer; padding: 6px 0; font-size: 13px;">Buy Now</button>
                     ` : `
                         <button onclick="openChatModal('${product.seller_id}', '${product.id}', '${product.name}')" style="grid-column: span 2; background: #333; color: #fff; border: 1px solid #555; border-radius: 6px; padding: 8px 0; cursor: pointer; font-size: 13px;">
-                            <i class="fas fa-envelope"></i> Contact Seller
+                            <i class="fas fa-envelope"></i> Contact Merchant
                         </button>
                     `}
                     <button onclick="openProductDetails('${product.id}')" style="grid-column: span 2; background: transparent; color: #888; border: none; cursor: pointer; font-size: 12px; margin-top: 5px; text-decoration: underline;">View Full Details</button>
@@ -2276,7 +2396,10 @@ async function checkDashboardSession() {
         await syncUserProfile();
         loadUserNameDisplay(); // Load the dynamic name
 
-        const role = session.user.user_metadata.role || 'customer';
+        // NEW: Fetch profile for verification AND role truth to prevent stale metadata redirects
+        const { data: profile } = await supabaseClient.from('profiles').select('role, verified').eq('id', session.user.id).single();
+        const role = profile ? profile.role : (session.user.user_metadata.role || 'customer');
+        
         const currentPath = window.location.pathname;
         
         // === MESSAGES PAGE LOGIC ===
@@ -2286,9 +2409,6 @@ async function checkDashboardSession() {
         }
         
         if (role === 'seller') {
-            // CHECK VERIFICATION STATUS
-            const { data: profile } = await supabaseClient.from('profiles').select('verified').eq('id', session.user.id).single();
-            
             if (profile && !profile.verified) {
                 // Overwrite main content with Pending Message
                 const mainContent = document.querySelector('.main-content');
@@ -2301,6 +2421,19 @@ async function checkDashboardSession() {
                         <button class="btn-icon" onclick="supabaseClient.auth.signOut().then(() => window.location.href='index.html')" style="margin-top:20px; font-size:14px; color:#ff4757;">Logout</button>
                     </div>
                 `;
+
+                // Real-time listener: Unlock automatically when Admin approves
+                supabaseClient
+                    .channel(`public:profiles:id=eq.${session.user.id}`)
+                    .on('postgres_changes', { 
+                        event: 'UPDATE', 
+                        schema: 'public', 
+                        table: 'profiles', 
+                        filter: `id=eq.${session.user.id}` 
+                    }, payload => {
+                        if (payload.new.verified) showCongratsModal();
+                    })
+                    .subscribe();
             } else {
                 loadSellerProducts();
                 loadSellerDashboardStats();
@@ -2339,14 +2472,72 @@ async function checkDashboardSession() {
     }
 }
 
+// Function to show the celebratory approval modal
+window.showCongratsModal = () => {
+    const modal = document.getElementById('congratsModal');
+    if (modal) {
+        modal.classList.add('active');
+        // Play a subtle success sound if you have one, or reuse the notification sound
+        if (chatNotificationSound) chatNotificationSound.play().catch(() => {});
+    }
+};
+
+// Function to finalize approval and enter the dashboard
+window.enterDashboard = () => {
+    const btn = document.querySelector('#congratsModal .btn-primary');
+    btn.innerText = 'Opening Dashboard...';
+    btn.disabled = true;
+    
+    // Refresh the page to load the full seller dashboard components
+    window.location.reload();
+};
+
 // === PWA SERVICE WORKER REGISTRATION ===
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
+        navigator.serviceWorker.register('sw.js')
             .then(reg => console.log('Service Worker registered successfully.'))
             .catch(err => console.log('Service Worker registration failed:', err));
     });
 }
+
+// === PWA INSTALLATION LOGIC ===
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent the default browser-provided "Add to Home Screen" banner
+    e.preventDefault();
+    // Stash the event so it can be triggered later.
+    deferredPrompt = e;
+    // Show the custom install button if it exists on the current page
+    const installBtn = document.getElementById('installPWA');
+    if (installBtn) {
+        installBtn.style.display = 'inline-block';
+    }
+});
+
+// Global listener for the install button click
+document.addEventListener('click', async (e) => {
+    if (e.target && e.target.id === 'installPWA') {
+        if (!deferredPrompt) return;
+        // Show the browser's native install prompt
+        deferredPrompt.prompt();
+        // Wait for the user to respond to the prompt
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User response to the install prompt: ${outcome}`);
+        // The prompt can only be used once, so clear it
+        deferredPrompt = null;
+        // Hide the button
+        e.target.style.display = 'none';
+    }
+});
+
+window.addEventListener('appinstalled', (event) => {
+    console.log('SME Connect PWA was successfully installed');
+    const installBtn = document.getElementById('installPWA');
+    if (installBtn) installBtn.style.display = 'none';
+    deferredPrompt = null;
+});
 
 // Load real orders for customer dashboard
 async function loadCustomerOrders() {
@@ -2486,6 +2677,23 @@ document.addEventListener('DOMContentLoaded', async () => { // Make async to awa
         document.body.insertAdjacentHTML('beforeend', bizModalHTML);
     }
 
+    // Inject Congratulations Modal
+    if (!document.getElementById('congratsModal')) {
+        const congratsHTML = `
+        <div id="congratsModal" class="modal">
+            <div class="modal-content congrats-content">
+                <div style="position: relative; height: 120px; display: flex; align-items: center; justify-content: center;">
+                    <div class="celebration-ring"></div>
+                    <i class="fas fa-check-circle congrats-icon"></i>
+                </div>
+                <h2 style="color: #fff; margin-bottom: 10px;">Congratulations!</h2>
+                <p style="color: #ccc; margin-bottom: 30px;">Your business account has been verified. You can now start listing your products and connecting with customers.</p>
+                <button class="btn-primary" onclick="enterDashboard()" style="width: 100%; padding: 15px;">Get Started</button>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', congratsHTML);
+    }
+
     // === MOBILE NAVBAR TOGGLE (PUBLIC PAGES) ===
     const header = document.querySelector('header');
     const nav = document.querySelector('nav');
@@ -2506,6 +2714,14 @@ document.addEventListener('DOMContentLoaded', async () => { // Make async to awa
 
         toggleBtn.addEventListener('click', () => {
             nav.classList.toggle('active');
+            
+            // Professional Touch: Lock body scroll when mobile nav is open
+            if (nav.classList.contains('active')) {
+                document.body.classList.add('nav-open');
+            } else {
+                document.body.classList.remove('nav-open');
+            }
+
             const icon = toggleBtn.querySelector('i');
             if (nav.classList.contains('active')) {
                 icon.classList.remove('fa-bars');
@@ -2514,6 +2730,19 @@ document.addEventListener('DOMContentLoaded', async () => { // Make async to awa
                 icon.classList.remove('fa-times');
                 icon.classList.add('fa-bars');
             }
+        });
+
+        // Close menu when a link is clicked
+        nav.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                nav.classList.remove('active');
+                document.body.classList.remove('nav-open');
+                const icon = toggleBtn.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                }
+            });
         });
     }
 });

@@ -11,6 +11,8 @@
   <!-- PWA Meta Tags -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1e90ff">
+  <link rel="apple-touch-icon" href="images/icon-192.png">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-capable" content="yes">
 </head>
 <body>
@@ -19,6 +21,7 @@
   <header>
     <h1>SME Connect</h1>
     <div class="header-actions">
+      <button id="installPWA" class="btn-primary" style="font-size: 12px; padding: 8px 15px;">Install App</button>
       <div class="auth-mobile">
         <a href="login.html" class="btn-primary btn-header-mobile">Login</a>
       </div>
@@ -28,9 +31,10 @@
     <nav>
       <ul>
         <li><a href="index.html">Home</a></li>
-        <li><a href="sellers.html">Sellers</a></li>
+        <li><a href="sellers.html">Marketplace</a></li>
         <li><a href="About.html">About</a></li>
-        <li class="nav-desktop"><a href="signup.html" class="btn-primary">Sign Up</a></li>
+        <li class="nav-desktop"><a href="register-business.html" class="btn-primary" style="background: var(--accent-color);">Partner with Us</a></li>
+        <li class="nav-desktop"><a href="register.html" class="btn-primary">Sign Up</a></li>
         <li class="nav-desktop"><a href="login.html" class="btn-primary">Login</a></li>
         <li><button onclick="toggleCart()" class="btn-icon cart-button" aria-label="Cart"><i class="fas fa-shopping-cart"></i><span class="cart-badge">0</span></button></li>
       </ul>
@@ -133,7 +137,7 @@
         
         <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; border: 1px solid #333;">
             <h4 style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px; color: #1e90ff;">Seller Contact Info</h4>
-            <p style="margin-bottom: 5px;"><i class="fas fa-user-circle"></i> <span id="detailSellerName"></span></p>
+            <p style="margin-bottom: 5px;"><i class="fas fa-store"></i> <span id="detailSellerName"></span></p>
             <p style="margin-bottom: 5px;"><i class="fas fa-envelope"></i> <span id="detailSellerEmail"></span></p>
             <p><i class="fas fa-map-marker-alt"></i> <span id="detailSellerLocation"></span></p>
             <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #444; display: none;">

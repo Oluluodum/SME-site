@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Business Registration - SME Connect</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+  <header>
+    <h1>SME Connect</h1>
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="login.html" class="btn-primary">Login</a></li>
+        <li><button id="theme-toggle" class="btn-icon" aria-label="Toggle Theme"><i class="fas fa-sun"></i></button></li>
+      </ul>
+    </nav>
+  </header>
+
+  <div class="signup-container">
+    <div class="form-box" style="max-width: 600px;">
+      <h2>Register Your Business</h2>
+      <p>Join our marketplace and start reaching more customers today.</p>
+      
+      <form id="registerForm">
+        <div class="input-group">
+          <label for="fullName">Proprietor / Contact Person</label>
+          <input type="text" id="fullName" required placeholder="Enter your full name">
+        </div>
+
+        <div class="input-group">
+          <label for="profilePic">Business Logo / Profile Picture</label>
+          <input type="file" id="profilePic" accept="image/*" style="width: 100%; padding: 10px; background: var(--bg-light); color: var(--text-color); border-radius: 8px;">
+        </div>
+
+        <!-- Business Fields are always visible here -->
+        <div id="seller-fields">
+          <div class="input-group">
+            <label for="businessName">Registered Business Name</label>
+            <input type="text" id="businessName" required placeholder="Enter your business name">
+          </div>
+          <div class="input-group">
+            <label for="businessType">Business Category</label>
+            <select id="businessType" required style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: var(--bg-light); color: var(--text-color); outline: none;">
+              <option value="">Select Category</option>
+              <option value="Electronics">Electronics</option>
+              <option value="Fashion">Fashion</option>
+              <option value="Services">Services</option>
+              <option value="Home & Living">Home & Living</option>
+              <option value="Health & Beauty">Health & Beauty</option>
+              <option value="Agriculture">Agriculture</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="location">Business Location</label>
+            <input type="text" id="location" required placeholder="e.g. Cairo Road, Lusaka">
+          </div>
+          <div class="input-group">
+            <label for="businessDocs">Verification Documents (PDF/Image)</label>
+            <input type="file" id="businessDocs" required accept=".pdf,.jpg,.jpeg,.png" style="width: 100%; padding: 10px; background: var(--bg-light); color: var(--text-color); border-radius: 8px;">
+            <small style="color: #888;">Upload your PACRA certificate or Trading License.</small>
+          </div>
+          <div class="input-group">
+            <label for="businessDesc">Short Business Description</label>
+            <textarea id="businessDesc" placeholder="Briefly describe what you sell or do..." style="width: 100%; padding: 12px; background: var(--bg-light); color: var(--text-color); border-radius: 8px; border:none; resize: vertical; min-height: 80px;"></textarea>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="email">Business Email</label>
+          <input type="email" id="email" required placeholder="business@example.com">
+        </div>
+        
+        <div class="input-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" required placeholder="Create a secure password">
+        </div>
+
+        <!-- Forced Role for this dedicated page -->
+        <input type="hidden" id="role" value="seller">
+
+        <button type="submit" class="btn-primary" style="width: 100%; padding: 15px; font-size: 1.1rem;">Submit for Verification</button>
+        
+        <div class="divider">OR</div>
+
+        <button type="button" class="btn-google" onclick="loginWithGoogle()">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo" width="18">
+          Register with Google
+        </button>
+
+        <div class="login-link">
+            Already have a business account? <a href="login.html">Login</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="script.js"></script>
+</body>
+</html>

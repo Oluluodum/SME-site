@@ -38,27 +38,31 @@ body {
   color: var(--text-color);
   line-height: 1.6;
   overflow-x: hidden; /* Prevents horizontal shaking/scrolling */
+  width: 100%;
+  position: relative;
 }
 
 /* === HEADER & NAVIGATION === */
 header {
   background: var(--header-bg);
-  padding: 15px 40px;
+  padding: 10px 5%;
   display: flex;
   justify-content: space-between;
   align-items: center;
   position: sticky;
   top: 0;
   z-index: 1000;
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(10px); /* Professional Glass Effect */
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  backdrop-filter: blur(12px); /* Enhanced Glass Effect */
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  height: 70px;
 }
 
 header h1 {
   color: #ff4757;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
+  letter-spacing: -0.5px;
 }
 
 .header-actions {
@@ -74,7 +78,7 @@ header h1 {
 nav ul {
   list-style: none;
   display: flex;
-  gap: 25px;
+  gap: 24px;
   flex-wrap: wrap; /* Allow wrapping on smaller screens */
   align-items: center;
 }
@@ -83,6 +87,8 @@ nav a {
   color: var(--text-color);
   text-decoration: none;
   font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0.3px;
   transition: 0.3s;
 }
 
@@ -97,8 +103,9 @@ nav a.active {
   background: none;
   border: none;
   color: var(--text-color);
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   cursor: pointer;
+  padding: 5px;
 }
 
 /* === TOAST NOTIFICATIONS (Professional Alerts) === */
@@ -149,10 +156,11 @@ nav a.active {
 .btn-primary {
   background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
   color: white;
-  padding: 10px 20px;
-  border-radius: 6px;
+  padding: 7px 16px;
+  border-radius: 5px;
   border: none;
   font-weight: 600;
+  font-size: 13px;
   cursor: pointer;
   transition: var(--transition);
   display: inline-block;
@@ -739,46 +747,72 @@ footer {
   transition: 0.3s;
 }
 
+/* Custom Install Button Hidden by Default */
+#installPWA {
+  display: none;
+}
+
 .social-icons a:hover {
   color: #1e90ff;
 }
 
 /* === RESPONSIVE DESIGN === */
 @media (max-width: 768px) {
+  body.nav-open {
+    overflow: hidden; /* Prevent background scroll when menu is open */
+  }
+
   header {
-    padding: 15px 20px; 
+    padding: 0 5%; 
   }
 
   .mobile-nav-toggle {
     display: block; /* Show hamburger button */
+    order: 2;
   }
 
   nav {
+    position: fixed;
+    top: 65px;
+    left: 0;
     width: 100%;
-    display: none; /* Hide menu by default */
-    margin-top: 15px;
-    border-top: 1px solid rgba(255,255,255,0.1);
+    height: calc(100vh - 65px);
+    background: var(--bg-card);
+    display: none;
+    padding: 30px;
+    z-index: 999;
+    overflow-y: auto;
   }
 
   nav.active {
-    display: block; /* Show when toggled */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: fadeIn 0.3s ease;
   }
 
   nav ul {
     flex-direction: column;
-    gap: 15px;
+    gap: 20px;
     padding: 10px 0;
+    width: 100%;
   }
 
   /* Fix Nav Link click area on mobile */
   nav ul li {
     width: 100%;
     text-align: center;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
   }
   
   .sellers-container, .contact-section {
     padding: 40px 20px;
+  }
+
+  .seller-grid {
+    padding: 0 20px 40px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
 
   .seller-card {
@@ -808,6 +842,46 @@ footer {
 @keyframes slideInRight {
   from { opacity: 0; transform: translateX(50px); }
   to { opacity: 1; transform: translateX(0); }
+}
+
+/* === CONGRATULATIONS MODAL === */
+.congrats-content {
+  text-align: center;
+  padding: 40px !important;
+  border: none !important;
+  background: linear-gradient(145deg, var(--bg-card), #1a1a1a);
+  animation: congratsPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.congrats-icon {
+  font-size: 80px;
+  color: #28a745;
+  margin-bottom: 20px;
+  display: block;
+  filter: drop-shadow(0 0 10px rgba(40, 167, 69, 0.4));
+}
+
+.celebration-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100px;
+  height: 100px;
+  border: 2px solid #28a745;
+  border-radius: 50%;
+  opacity: 0;
+  animation: ringExpand 1s ease-out infinite;
+}
+
+@keyframes congratsPop {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes ringExpand {
+  0% { width: 80px; height: 80px; opacity: 0.8; }
+  100% { width: 200px; height: 200px; opacity: 0; }
 }
 
 /* === ABOUT PAGE STYLES (Migrated) === */
@@ -1406,7 +1480,8 @@ footer {
 
 .wa-container {
   display: flex;
-  height: 100vh;
+  height: 100vh; /* Fallback */
+  height: 100dvh; /* Better for mobile browsers */
   background-color: var(--bg-dark);
   overflow: hidden;
 }
@@ -1417,6 +1492,7 @@ footer {
   border-right: 1px solid rgba(128,128,128, 0.2);
   display: flex;
   flex-direction: column;
+  max-width: 100%;
 }
 
 .wa-main {
@@ -1555,13 +1631,15 @@ footer {
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .wa-sidebar { width: 100%; display: flex; }
-  .wa-main { display: none; width: 100%; position: fixed; top: 0; left: 0; height: 100%; z-index: 100; }
+  .wa-main { display: none; width: 100%; position: fixed; top: 0; left: 0; height: 100dvh; z-index: 100; }
   
   .wa-container.chat-active .wa-sidebar { display: none; }
   .wa-container.chat-active .wa-main { display: flex; }
   
   .wa-chat-body { padding: 15px; }
   .mobile-only { display: block; }
+
+  .sidebar { width: 280px; max-width: 80vw; }
 }
 
 /* File Upload Preview */
