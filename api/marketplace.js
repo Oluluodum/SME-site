@@ -17,12 +17,23 @@ export default async function handler(request, response) {
   productsUrl.searchParams.set('select', select)
   productsUrl.searchParams.set('status', 'eq.available')
   productsUrl.searchParams.set('order', 'created_at.desc')
-  const productsResponse = await fetch(productsUrl, {
-    headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
-  })
+  try {
+    const productsResponse = await fetch(productsUrl, {
+      headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
+    })
 
-  if (!productsResponse.ok) return response.status(502).json({ error: 'Marketplace products could not be loaded.' })
-  const data = await productsResponse.json()
+    if (!productsResponse.ok) {
+      const upstreamError = await productsResponse.text()
+      let detail = upstreamError
+      try {
+        detail = JSON.parse(upstreamError)?.message || JSON.parse(upstreamError)?.hint || upstreamError
+      } catch {
+        detail = upstreamError
+      }
+      return response.status(502).json({ error: 'Marketplace products could not be loaded.', detail })
+    }
+
+    const data = await productsResponse.json()
 
   const products = (data || []).map((product) => ({
     id: product.id,
@@ -42,9 +53,16 @@ export default async function handler(request, response) {
     },
   }))
 
-  return response.json(products.filter((product) => {
-    const matchesCategory = !category || category === 'All Categories' || product.category === category
-    const searchableText = `${product.name} ${product.description} ${product.business?.businessName} ${product.business?.location}`.toLowerCase()
-    return matchesCategory && (!query || searchableText.includes(query))
-  }))
+    return response.json(products.filter((product) => {
+      const matchesCategory = !category || category === 'All Categories' || product.category === category
+      const searchableText = `${product.name} ${product.description} ${product.business?.businessName} ${product.business?.location}`.toLowerCase()
+      return matchesCategory && (!query || searchableText.includes(query))
+    }))
+  } catch (error) {
+    console.error('[marketplace] Supabase request failed:', error)
+    return response.status(502).json({
+      error: 'Marketplace products could not be loaded.',
+      detail: error instanceof Error ? error.message : 'Unknown database request failure',
+    })
+  }
 }
