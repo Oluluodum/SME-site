@@ -18,8 +18,8 @@ const categories = [
   { name: 'Agriculture', icon: Leaf },
 ]
 
-const configuredApiBase = import.meta.env.VITE_API_URL || ''
-const apiBase = import.meta.env.PROD && /localhost|127\.0\.0\.1/.test(configuredApiBase) ? '' : configuredApiBase
+const configuredApiBase = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
+const apiBase = import.meta.env.PROD ? '' : configuredApiBase
 const assetUrl = (imageUrl) => imageUrl?.startsWith('/') ? `${apiBase}${imageUrl}` : imageUrl
 
 function AdminDashboard({ user, profile, products, applications = [], stats = {}, onNavigate, onApproveSeller, onRejectSeller, onDownloadDocument, onSignOut }) {
