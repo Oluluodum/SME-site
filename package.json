@@ -2,10 +2,12 @@
   "name": "sme-site",
   "private": true,
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "dev": "npm --prefix client run dev",
     "build": "npm install --prefix client && npm --prefix client run build",
     "lint": "npm --prefix client run lint",
     "preview": "npm --prefix client run preview"
-  }
+  },
+  "dependencies": {}
 }

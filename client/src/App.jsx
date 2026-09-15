@@ -18,10 +18,11 @@ const categories = [
   { name: 'Agriculture', icon: Leaf },
 ]
 
-const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const configuredApiBase = import.meta.env.VITE_API_URL || ''
+const apiBase = import.meta.env.PROD && /localhost|127\.0\.0\.1/.test(configuredApiBase) ? '' : configuredApiBase
 const assetUrl = (imageUrl) => imageUrl?.startsWith('/') ? `${apiBase}${imageUrl}` : imageUrl
 
-function AdminDashboard({ user, profile, products, applications = [], stats = {}, onNavigate, onApproveSeller, onRejectSeller, onDownloadDocument }) {
+function AdminDashboard({ user, profile, products, applications = [], stats = {}, onNavigate, onApproveSeller, onRejectSeller, onDownloadDocument, onSignOut }) {
   const [activeTab, setActiveTab] = useState('Dashboard')
   const [adminTheme, setAdminTheme] = useState('dark')
   const [searchText, setSearchText] = useState('')
@@ -268,7 +269,10 @@ function AdminDashboard({ user, profile, products, applications = [], stats = {}
               </button>
             ))}
           </nav>
-          <button type="button" onClick={() => onNavigate('home')} style={{ marginTop: 'auto', ...buttonStyle('ghost') }}>Back to marketplace</button>
+          <div style={{ marginTop: 'auto', display: 'grid', gap: 10 }}>
+            <button type="button" onClick={() => onNavigate('home')} style={buttonStyle('ghost')}>Back to marketplace</button>
+            <button type="button" onClick={onSignOut} style={{ ...buttonStyle('ghost'), background: '#fee2e2', color: '#7f1d1d' }}>Log out</button>
+          </div>
         </aside>
 
         <section style={{ flex: 1, padding: 28, background: palette.appBg }}>
@@ -332,6 +336,7 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('sme-theme') === 'dark')
   const [view, setView] = useState(() => window.location.hash.slice(1) || 'home')
+  const [showScrollTop, setShowScrollTop] = useState(false)
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [authReady, setAuthReady] = useState(!supabase)
@@ -370,6 +375,13 @@ function App() {
     const handleHashChange = () => setView(window.location.hash.slice(1) || 'home')
     window.addEventListener('hashchange', handleHashChange)
     return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
+
+  useEffect(() => {
+    const handleScroll = () => setShowScrollTop(window.scrollY > 320)
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
   useEffect(() => {
@@ -442,13 +454,13 @@ function App() {
     const search = new URLSearchParams({ q: query, category })
     setLoading(true)
     setError('')
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/marketplace?${search}`)
+    fetch(`${apiBase}/api/marketplace?${search}`)
       .then((response) => {
-        if (!response.ok) throw new Error('Marketplace request failed')
+        if (!response.ok) throw new Error(`Marketplace request failed (${response.status})`)
         return response.json()
       })
       .then(setProducts)
-      .catch(() => setError('The marketplace could not be loaded. Check that the Express API is running.'))
+      .catch((requestError) => setError(`The marketplace could not be loaded. ${requestError.message}`))
       .finally(() => setLoading(false))
   }, [query, category])
 
@@ -470,6 +482,18 @@ function App() {
     installPrompt.prompt()
     await installPrompt.userChoice
     setInstallPrompt(null)
+  }
+
+  const handleSignOut = async () => {
+    if (supabase) await supabase.auth.signOut()
+    setUser(null)
+    setProfile(null)
+    setAuthReady(true)
+    navigate('home')
+  }
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const adminStats = useMemo(() => {
@@ -631,7 +655,7 @@ function App() {
     const isBusinessAdmin = isAdmin && isBusinessProfile
 
     if (isAdmin && !isBusinessAdmin) {
-      return <AdminDashboard user={user} profile={profile} products={products} applications={sellerApplications} stats={adminStats} onNavigate={navigate} onApproveSeller={handleApproveSeller} onRejectSeller={handleRejectSeller} onDownloadDocument={handleDownloadDocument} />
+      return <AdminDashboard user={user} profile={profile} products={products} applications={sellerApplications} stats={adminStats} onNavigate={navigate} onApproveSeller={handleApproveSeller} onRejectSeller={handleRejectSeller} onDownloadDocument={handleDownloadDocument} onSignOut={handleSignOut} />
     }
 
     if (isSellerAccount || isBusinessAdmin) {
@@ -658,7 +682,7 @@ function App() {
 
       <section className="hero" id="top">
         <div className="hero-copy"><p className="eyebrow"><Sparkles size={14} /> The home of local ambition</p><h1>Find what makes<br /><em>your life better.</em></h1><p className="hero-intro">Shop trusted products and services from ambitious small businesses, makers, and professionals across Zambia.</p><div className="hero-search"><Search size={19} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="What are you looking for?" /><button onClick={() => document.getElementById('shop')?.scrollIntoView({ behavior: 'smooth' })}>Search</button></div><div className="hero-footnote"><BadgeCheck size={16} /> Every business is reviewed before joining</div></div>
-        <div className="hero-visual"><img src={assetUrl('/images/Online shopping pic.jpg')} alt="Online shopping with a laptop, phone, and shopping bags" /><div className="visual-note"><span className="note-icon"><ShoppingBag size={17} /></span><div><strong>Shop local, simply</strong><small>Discover products from businesses near you.</small></div></div><div className="hero-stamp"><span>Est.</span><strong>2026</strong></div></div>
+        <div className="hero-visual"><img src="/images/Online-shopping-pic.jpg" alt="Online shopping with a laptop, phone, and shopping bags" /><div className="visual-note"><span className="note-icon"><ShoppingBag size={17} /></span><div><strong>Shop local, simply</strong><small>Discover products from businesses near you.</small></div></div><div className="hero-stamp"><span>Est.</span><strong>2026</strong></div></div>
       </section>
 
       <section className="category-section" aria-label="Shop by category"><div className="section-heading"><div><p className="eyebrow">Browse the marketplace</p><h2>Something for every day.</h2></div><button className="text-button" onClick={() => setCategory('All Categories')}>View all <ArrowRight size={16} /></button></div><div className="category-grid">{categories.slice(1).map(({ name, icon: Icon }) => <button className={category === name ? 'category-card selected' : 'category-card'} key={name} onClick={() => { setCategory(name); document.getElementById('shop')?.scrollIntoView({ behavior: 'smooth' }) }}><span><Icon size={22} /></span><strong>{name}</strong><small>Explore now <ArrowRight size={13} /></small></button>)}</div></section>
@@ -669,9 +693,11 @@ function App() {
 
       <section className="shop-section" id="shop"><div className="section-heading shop-heading"><div><p className="eyebrow">Fresh from the community</p><h2>Popular right now.</h2></div><div className="shop-controls"><label><span>Sort by</span><select><option>Recommended</option><option>Newest first</option><option>Price: low to high</option></select><ChevronDown size={14} /></label></div></div><div className="filter-row"><button className={category === 'All Categories' ? 'filter active' : 'filter'} onClick={() => setCategory('All Categories')}>All products <span>{products.length}</span></button>{categories.slice(1).map(({ name }) => <button className={category === name ? 'filter active' : 'filter'} key={name} onClick={() => setCategory(name)}>{name}</button>)}</div>{loading && <p className="message">Loading marketplace...</p>}{error && <p className="message error">{error}</p>}{!loading && !error && !products.length && <p className="message">No products match those filters.</p>}<div className="product-grid">{products.map((product) => <article className="product-card" key={product.id}><div className="product-image-wrap">{product.imageUrl ? <img src={assetUrl(product.imageUrl)} alt={product.name} /> : <div className="product-image-placeholder" aria-hidden="true">{product.name?.slice(0, 1)}</div>}<button className="heart-button" aria-label={`Save ${product.name}`}><Heart size={17} /></button>{product.business?.verified && <span className="verified"><BadgeCheck size={13} /> Verified</span>}</div><div className="product-content"><p className="product-category">{product.category}</p><h3>{product.name}</h3><p className="product-description">{product.description}</p><div className="product-meta"><div><strong>{typeof product.price === 'number' ? `ZMW ${product.price.toLocaleString()}` : product.price}</strong><span>{product.business?.businessName}</span></div><button className="add-button" onClick={() => addToCart(product)} aria-label={`Add ${product.name} to bag`}><ShoppingBag size={17} /></button></div><p className="location"><MapPin size={13} /> {product.business?.location}</p></div></article>)}</div></section>
 
-      <section className="business-section" id="businesses"><div className="business-intro"><p className="eyebrow">The people behind the products</p><h2>Small businesses.<br /><em>Big ideas.</em></h2><p>Meet the independent businesses creating jobs, solving problems, and making life more interesting in our communities.</p><button className="outline-button">Explore all businesses <ArrowRight size={16} /></button></div><div className="business-list">{businesses.slice(0, 3).map((business, index) => <article className="business-row" key={business.businessName}><span className="business-number">0{index + 1}</span><div className="business-icon"><Store size={22} /></div><div className="business-info"><h3>{business.businessName} {business.verified && <BadgeCheck size={16} />}</h3><p>{business.description}</p><span><MapPin size={13} /> {business.location}</span></div><ArrowRight className="business-arrow" size={19} /></article>)}</div></section>
+      <section className="business-section" id="businesses"><div className="business-intro"><p className="eyebrow">The people behind the products</p><h2>Small businesses.<br /><em>Big ideas.</em></h2><p>Meet the independent businesses creating jobs, solving problems, and making life more interesting in our communities.</p><button className="outline-button" type="button" onClick={() => navigate(user ? 'dashboard' : 'signup')}>Explore all businesses <ArrowRight size={16} /></button></div><div className="business-list">{businesses.slice(0, 3).map((business, index) => <article className="business-row" key={business.businessName}><span className="business-number">0{index + 1}</span><div className="business-icon"><Store size={22} /></div><div className="business-info"><h3>{business.businessName} {business.verified && <BadgeCheck size={16} />}</h3><p>{business.description}</p><span><MapPin size={13} /> {business.location}</span></div><ArrowRight className="business-arrow" size={19} /></article>)}</div></section>
 
-      <footer id="about"><div className="footer-brand"><a className="brand" href="#top"><span className="brand-mark"><Leaf size={20} /></span><span>SME <b>Connect</b></span></a><p>A better way to discover, support, and grow local business.</p></div><div className="footer-links"><div><strong>Explore</strong><a href="#shop">Marketplace</a><a href="#businesses">Businesses</a><a href="#how-it-works">How it works</a></div><div><strong>For business</strong><a href="#businesses">Join SME Connect</a><a href="#businesses">Seller resources</a><a href="#about">Contact us</a></div></div><p className="copyright">© 2026 SME Connect. Made for local ambition.</p></footer>
+      <footer id="about"><div className="footer-brand"><a className="brand" href="#top"><span className="brand-mark"><Leaf size={20} /></span><span>SME <b>Connect</b></span></a><p>A better way to discover, support, and grow local business.</p></div><div className="footer-links"><div><strong>Explore</strong><a href="#shop">Marketplace</a><a href="#businesses">Businesses</a><a href="#how-it-works">How it works</a></div><div><strong>For business</strong><button type="button" className="footer-link-button" onClick={() => navigate('signup')}>Join SME Connect</button><button type="button" className="footer-link-button" onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}>Seller resources</button><a href="mailto:support@smeconnect.zm?subject=Contact%20SME%20Connect">Contact us</a></div></div><p className="copyright">© 2026 SME Connect. Made for local ambition.</p></footer>
+
+      {showScrollTop && <button type="button" className="scroll-top-button" onClick={scrollToTop} aria-label="Scroll to top"><ArrowRight size={18} /></button>}
 
       {cartOpen && <div className="drawer-backdrop" onClick={() => setCartOpen(false)}><aside className="cart-drawer" onClick={(event) => event.stopPropagation()}><div className="drawer-head"><div><p className="eyebrow">Your shopping bag</p><h2>{cart.length ? `${cart.length} item${cart.length === 1 ? '' : 's'}` : 'Your bag is empty'}</h2></div><button className="icon-button" onClick={() => setCartOpen(false)} aria-label="Close shopping bag"><X size={21} /></button></div>{cart.length ? <><div className="cart-items">{cart.map((product) => <div className="cart-item" key={product.id}><div className="cart-image-placeholder" aria-hidden="true">{product.name?.slice(0, 1)}</div><div><strong>{product.name}</strong><span>{product.business?.businessName}</span><b>ZMW {Number(product.price).toLocaleString()}</b></div><button onClick={() => removeFromCart(product.id)} aria-label={`Remove ${product.name}`}><X size={15} /></button></div>)}</div><div className="cart-total"><span>Estimated total</span><strong>ZMW {cartTotal.toLocaleString()}</strong></div><button className="checkout-button" onClick={checkout}>Place order <ArrowRight size={17} /></button></> : <div className="empty-bag"><ShoppingBag size={36} /><p>Your bag is waiting for something good.</p><button className="outline-button" onClick={() => setCartOpen(false)}>Continue shopping</button></div>}</aside></div>}
     </main>
