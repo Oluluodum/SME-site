@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "npm --prefix client run dev",
-    "build": "npm --prefix client run build",
+    "build": "npm install --prefix client && npm --prefix client run build",
     "lint": "npm --prefix client run lint",
     "preview": "npm --prefix client run preview"
   }
