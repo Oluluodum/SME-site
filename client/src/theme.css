@@ -1,0 +1,57 @@
+:root {
+  --ink: #252321;
+  --muted: #736e68;
+  --paper: #f4f0e9;
+  --white: #fffdf8;
+  --green: #34302d;
+  --deep-green: #211e1b;
+  --lime: #f4b942;
+  --coral: #ed694a;
+  --line: #ddd6cc;
+  --gold: #e8a24a;
+  --blue: #4b83d4;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --ink: #f6f1e9;
+  --muted: #b3aaa0;
+  --paper: #181716;
+  --white: #242220;
+  --green: #f4b942;
+  --deep-green: #fff8ed;
+  --lime: #efb63d;
+  --coral: #ff8060;
+  --line: #403a35;
+  --gold: #e8a24a;
+  --blue: #78a9f0;
+  color-scheme: dark;
+}
+
+.app-shell { background: var(--paper); color: var(--ink); }
+.announcement { background: var(--deep-green); color: var(--paper); }
+.announcement a, .eyebrow, .product-category { color: var(--coral); }
+.brand, .main-nav a.active, .main-nav a:hover, .account-link { color: var(--deep-green); }
+.brand-mark { background: var(--lime); color: var(--deep-green); }
+.cart-button, .icon-button, .product-card, .category-card, .cart-drawer { background: var(--white); color: var(--deep-green); border-color: var(--line); }
+.hero-search { border-color: var(--line); background: var(--white); }
+.hero-search input { color: var(--ink); }
+.category-card > span { background: color-mix(in srgb, var(--blue) 14%, transparent); color: var(--blue); }
+.category-card:hover, .category-card.selected { border-color: var(--coral); box-shadow: 0 8px 18px color-mix(in srgb, var(--coral) 18%, transparent); }
+.product-card:hover { box-shadow: 0 10px 24px color-mix(in srgb, var(--coral) 16%, transparent); }
+.trust-strip { background: var(--deep-green); }
+.business-section, .business-row { background: color-mix(in srgb, var(--blue) 10%, var(--paper)); }
+.business-list { background: var(--line); }
+.business-row { color: var(--ink); }
+.product-content h3, .section-heading h2, .hero h1, .business-intro h2, .business-info h3, .drawer-head h2, .cart-item strong, .cart-total strong { color: var(--deep-green); }
+.add-button { background: var(--lime); color: var(--green); }
+.outline-button { border-color: var(--green); color: var(--green); }
+.drawer-backdrop { background: color-mix(in srgb, var(--deep-green) 45%, transparent); }
+.cart-drawer { box-shadow: -12px 0 35px color-mix(in srgb, var(--deep-green) 20%, transparent); }
+
+:root[data-theme='dark'] .hero-visual::before { background: #3a3021; }
+:root[data-theme='dark'] .visual-note,
+:root[data-theme='dark'] .hero-stamp,
+:root[data-theme='dark'] .category-card > span { background: #302a24; }
+:root[data-theme='dark'] .hero-search button,
+:root[data-theme='dark'] .checkout-button { color: #211e1b; }

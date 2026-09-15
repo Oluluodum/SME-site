@@ -14,7 +14,10 @@ create table if not exists public.profiles (
   role text default 'customer',
   business_name text,
   business_type text,
+  registration_number text,
+  registration_authority text,
   location text,
+  phone text,
   description text,
   verified boolean default false,
   avatar_url text,
@@ -22,6 +25,9 @@ create table if not exists public.profiles (
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 alter table public.profiles enable row level security;
+alter table public.profiles add column if not exists registration_number text;
+alter table public.profiles add column if not exists registration_authority text;
+alter table public.profiles add column if not exists phone text;
 
 -- Allow anyone to see basic profile info (required for marketplace)
 create policy "Public profiles are viewable by everyone." on profiles for select using (true);
@@ -31,13 +37,13 @@ create policy "Admins can do everything" on profiles for all
 using ( (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin' );
 
 create policy "Users can insert their own profile." on profiles for insert with check (auth.uid() = id);
-create policy "Users can update own profile." on profiles for update using (auth.uid() = id);
+create policy "Users can update own profile." on profiles for update using (auth.uid() = id) with check (auth.uid() = id);
 
 -- TRIGGER: Automatically create a profile when a new user signs up
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, email, full_name, role, business_name, business_type, location, description, verified)
+  insert into public.profiles (id, email, full_name, role, business_name, business_type, registration_number, registration_authority, location, phone, description, verified)
   values (
     new.id, 
     new.email, 
@@ -45,7 +51,10 @@ begin
     coalesce(new.raw_user_meta_data->>'role', 'customer'),
     new.raw_user_meta_data->>'business_name',
     new.raw_user_meta_data->>'business_type',
+    new.raw_user_meta_data->>'registration_number',
+    new.raw_user_meta_data->>'registration_authority',
     new.raw_user_meta_data->>'location',
+    new.raw_user_meta_data->>'phone',
     new.raw_user_meta_data->>'description',
     case when new.raw_user_meta_data->>'role' = 'seller' then false else true end
   );
@@ -73,7 +82,7 @@ alter table public.products enable row level security;
 
 create policy "Products are viewable by everyone." on products for select using (true);
 create policy "Sellers can insert products." on products for insert with check (auth.uid() = seller_id);
-create policy "Sellers can update own products." on products for update using (auth.uid() = seller_id);
+create policy "Sellers can update own products." on products for update using (auth.uid() = seller_id) with check (auth.uid() = seller_id);
 create policy "Sellers can delete own products." on products for delete using (auth.uid() = seller_id);
 
 -- 3. MESSAGES TABLE

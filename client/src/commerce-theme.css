@@ -1,0 +1,10 @@
+.announcement { color: #dce5f4; }
+.category-card > span { background: #edf2fb; }
+.business-section { background: #e8edf4; }
+.business-list { background: #c7d2e1; }
+.business-row { background: #e8edf4; }
+.drawer-backdrop { background: rgba(16, 43, 82, .32); }
+.cart-drawer { box-shadow: -12px 0 35px rgba(16, 43, 82, .12); }
+@media (max-width: 720px) {
+  .main-nav { box-shadow: 0 12px 24px rgba(16, 43, 82, .1); }
+}
