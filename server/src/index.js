@@ -13,8 +13,9 @@ app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173' }));
 app.use(express.json());
 app.use('/images', express.static(path.join(projectRoot, 'images')));
 
-const supabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || null;
+const supabase = process.env.SUPABASE_URL && supabaseKey
+  ? createClient(process.env.SUPABASE_URL, supabaseKey)
   : null;
 
 app.get('/api/health', (_request, response) => {
