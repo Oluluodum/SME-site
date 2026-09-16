@@ -87,6 +87,7 @@ function SellerDashboard({ products, profileData, userId, onNavigate, onCreatePr
           <div className="buyer-top-actions">
             <button className="buyer-icon-button" aria-label="Notifications"><Bell size={19} /></button>
             <button className="buyer-cart-link" onClick={() => setActiveSection('orders')}><ShoppingBag size={18} /><span>{businessProducts.length} items</span></button>
+            <button className="dashboard-signout" type="button" onClick={signOut}><LogOut size={16} /><span>Sign out</span></button>
             <span className="buyer-avatar avatar">{initials(profileData?.businessName || profileData?.name || 'Business')}</span>
           </div>
         </header>
@@ -522,7 +523,7 @@ function SellerMessages({ userId }) {
         </div>
       </div>
 
-      <div className="message-layout" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 20 }}>
+      <div className="message-layout seller-message-layout" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 20 }}>
         <div className="conversation-list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {threads.map((thread) => (
             <button
