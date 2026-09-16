@@ -450,6 +450,18 @@ function SellerMessages({ userId }) {
     return () => { mounted = false }
   }, [userId])
 
+  useEffect(() => {
+    if (!supabase || !userId) return undefined
+    const channel = supabase.channel(`seller-messages-${userId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
+        const record = payload.new || payload.old
+        if (!record || (record.sender_id !== userId && record.receiver_id !== userId)) return
+        refreshThreads()
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [userId])
+
   const activeThread = threads.find((thread) => thread.participantId === selectedParticipantId) || threads[0]
 
   useEffect(() => {
